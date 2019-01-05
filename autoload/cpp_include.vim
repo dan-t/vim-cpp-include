@@ -27,19 +27,25 @@ function! cpp_include#include(symbol)
       let line_nums = s:find_all_includes()
       call s:debug_print(printf('include line nums: %s', line_nums))
 
-      let best_line_num = s:best_match(tag, line_nums)
+      let inc_line_num = s:best_match(tag, line_nums)
 
       " in the case of no match use the last include
-      if best_line_num == 0 && !empty(line_nums)
-         let best_line_num = line_nums[-1]
+      if inc_line_num == 0 && !empty(line_nums)
+         let inc_line_num = line_nums[-1]
       endif
 
-      call s:debug_print(printf('best include match: %s', getline(best_line_num)))
+      if inc_line_num != 0
+         call s:debug_print(printf('add include below: %s', getline(inc_line_num)))
+      else
+         let inc_line_num = s:select_line_num()
+      endif
 
-      let inc_str = printf('#include "%s"', tag.filename)
-      call append(best_line_num, inc_str)
+      if inc_line_num != 0
+         let inc_str = printf('#include "%s"', tag.filename)
+         call append(inc_line_num, inc_str)
 
-      call cpp_include#print_info(printf("added '%s'", inc_str))
+         call cpp_include#print_info(printf("added '%s'", inc_str))
+      endif
    endif
 
    " reset cursor position
@@ -117,6 +123,17 @@ function! s:select_tag(tags)
 
   let tag = kind_tags[idx - 1]
   return tag
+endfunction
+
+function! s:select_line_num()
+   let num_lines = line('$')
+   if num_lines < 1
+      return 0
+   endif
+
+   let line_num = input(printf('Select line for include (1-%s): ', num_lines))
+   echo "\n"
+   return line_num < 1 || line_num > num_lines ? 0 : line_num
 endfunction
 
 " get the path from an include string:
