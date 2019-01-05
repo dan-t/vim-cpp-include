@@ -1,7 +1,7 @@
 function! cpp_include#include(symbol)
    let tags = taglist('^' . a:symbol . '$')
    if empty(tags)
-      call cpp_include#print_error("vim-cpp-include: Couldn't find any tags for " . a:symbol)
+      call cpp_include#print_error("Couldn't find any tags for " . a:symbol)
       return
    endif
 
@@ -15,14 +15,17 @@ function! cpp_include#include(symbol)
       return
    endif
 
-   call s:debug_echo(printf('selected tag: %s', tag))
+   call s:debug_print(printf('selected tag: %s', tag))
 
    " save current cursor position
    let curpos = getcurpos() 
 
-   if !s:has_include(tag)
-      let line_nums = s:find_includes()
-      call s:debug_echo(printf('include line nums: %s', line_nums))
+   let tag_inc = s:find_include(tag)
+   if !empty(tag_inc)
+      call cpp_include#print_info(printf("already present '%s'", tag_inc))
+   else
+      let line_nums = s:find_all_includes()
+      call s:debug_print(printf('include line nums: %s', line_nums))
 
       let best_line_num = s:best_match(tag, line_nums)
 
@@ -31,12 +34,12 @@ function! cpp_include#include(symbol)
          let best_line_num = line_nums[-1]
       endif
 
-      call s:debug_echo(printf('best include match: %s', getline(best_line_num)))
+      call s:debug_print(printf('best include match: %s', getline(best_line_num)))
 
       let inc_str = printf('#include "%s"', tag.filename)
       call append(best_line_num, inc_str)
 
-      echo printf('vim-cpp-include: %s', inc_str)
+      call cpp_include#print_info(printf("added '%s'", inc_str))
    endif
 
    " reset cursor position
@@ -45,8 +48,12 @@ endfunction
 
 function! cpp_include#print_error(msg)
   echohl ErrorMsg
-  echomsg a:msg
+  echomsg printf('vim-cpp-include: %s', a:msg)
   echohl None
+endfunction
+
+function! cpp_include#print_info(msg)
+   echo printf('vim-cpp-include: %s', a:msg)
 endfunction
 
 function! s:split_by_kind(tags)
@@ -122,23 +129,23 @@ function! s:path(include_str)
    return sys_dir_split[0]
 endfunction
 
-function! s:has_include(tag)
+function! s:find_include(tag)
    call cursor(1, 1)
    let include_str = printf('#include "%s"', a:tag.filename)
    if search(include_str, 'cn') != 0
-      return 1
+      return include_str
    endif
 
    let include_str = printf('#include <%s>', a:tag.name)
    if search(include_str, 'cn') != 0
-      return 1
+      return include_str
    endif
 
-   return 0
+   return ''
 endfunction
 
 " returns a list of line numbers of all includes
-function! s:find_includes()
+function! s:find_all_includes()
    call cursor(1, 1)
    let line_nums = []
    while 1
@@ -188,9 +195,9 @@ function! s:best_match(tag, include_line_nums)
    return best_inc == -1 ? 0 : a:include_line_nums[best_inc]
 endfunction
 
-function! s:debug_echo(msg)
+function! s:debug_print(msg)
    if g:cpp_include_debug
-      echo a:msg
+      echo printf('vim-cpp-include: %s', a:msg)
    endif
 endfunction
 
