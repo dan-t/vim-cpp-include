@@ -110,10 +110,25 @@ function! s:select_tag(tags)
       return kind_tags[0]
    endif
 
+   let max_filename_len = 0
+   for tag in kind_tags
+      let max_filename_len = max([max_filename_len, len(tag.filename)])
+   endfor
+
+   " sort kind_tags by filename
+   let kind_tags = sort(kind_tags, { x, y -> x.filename > y.filename })
+
+   let num_decs = len(printf('%d', len(kind_tags)))
    let inputList = ['Select file to include:']
    let i = 1
    for tag in kind_tags
-      let inputList += [printf('%d file: %s, regex: %s', i, tag.filename, tag.cmd)]
+      let num_spaces = max_filename_len - len(tag.filename) + 1
+      let format_str = '%' . num_decs . 'd file: %s%' . num_spaces . 's, regex: %s'
+
+      " collapse multiple spaces to one
+      let cmd = substitute(tag.cmd, '[ \t]\+', ' ', 'g')
+
+      let inputList += [printf(format_str, i, tag.filename, ' ', cmd)]
       let i += 1
    endfor
 
