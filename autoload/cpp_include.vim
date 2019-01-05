@@ -105,24 +105,24 @@ function! s:select_tag(tags)
       return kind_tags[0]
    endif
 
-  let inputList = ['Select file to include:']
-  let i = 1
-  for tag in kind_tags
-    let inputList += [printf('%d file: %s, regex: %s', i, tag.filename, tag.cmd)]
-    let i += 1
-  endfor
+   let inputList = ['Select file to include:']
+   let i = 1
+   for tag in kind_tags
+      let inputList += [printf('%d file: %s, regex: %s', i, tag.filename, tag.cmd)]
+      let i += 1
+   endfor
 
-  let idx = inputlist(inputList)
-  if idx == 0
-    return {}
-  endif
+   let idx = inputlist(inputList)
+   if idx == 0
+      return {}
+   endif
 
-  if idx < 1 || idx > num_kind_tags
-    return {}
-  endif
+   if idx < 1 || idx > num_kind_tags
+      return {}
+   endif
 
-  let tag = kind_tags[idx - 1]
-  return tag
+   let tag = kind_tags[idx - 1]
+   return tag
 endfunction
 
 function! s:select_line_num()
