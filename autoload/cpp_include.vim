@@ -133,6 +133,7 @@ function! s:select_tag(tags)
    endfor
 
    let idx = inputlist(inputList)
+   echo "\n"
    if idx == 0
       return {}
    endif
