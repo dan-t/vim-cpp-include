@@ -1,7 +1,7 @@
 function! cpp_include#include(symbol)
    let tags = taglist('^' . a:symbol . '$')
    if empty(tags)
-      call cpp_include#print_error("Couldn't find any tags for " . a:symbol)
+      call cpp_include#print_error("couldn't find any tags for " . a:symbol)
       return
    endif
 
