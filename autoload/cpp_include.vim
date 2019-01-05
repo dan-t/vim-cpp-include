@@ -137,13 +137,20 @@ function! s:select_line_num()
    endif
 
    normal gg
-   set number
+   let old_number = &number
+   if old_number == 0
+      set number
+   endif
+
    redraw
 
    let line_num = input(printf('Select line for include (1-%s): ', num_lines))
    echo "\n"
 
-   set nonumber
+   if old_number == 0
+      set nonumber
+   endif
+
    redraw
 
    return line_num < 1 || line_num > num_lines ? 0 : line_num
