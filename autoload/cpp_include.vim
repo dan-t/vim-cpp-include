@@ -49,7 +49,7 @@ function! cpp_include#include(symbol)
             let curpos[1] += 1
          endif
 
-         call cpp_include#print_info(printf("added '%s'", inc_str))
+         call cpp_include#print_info(printf("added '%s' at line %d", inc_str, inc_line_num + 1))
       endif
    endif
 
