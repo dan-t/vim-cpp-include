@@ -44,6 +44,11 @@ function! cpp_include#include(symbol)
          let inc_str = printf('#include "%s"', tag.filename)
          call append(inc_line_num, inc_str)
 
+         " consider the added include for resetting the cursor position
+         if curpos[1] > inc_line_num
+            let curpos[1] += 1
+         endif
+
          call cpp_include#print_info(printf("added '%s'", inc_str))
       endif
    endif
