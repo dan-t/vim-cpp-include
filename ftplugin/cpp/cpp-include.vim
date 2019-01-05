@@ -8,8 +8,8 @@ if !exists('g:cpp_include_dirs') || len(g:cpp_include_dirs) == 0
 endif
 
 if !exists('g:cpp_include_kind_order')
-   " prefer tags in the order: class, struct, typedef, define, function
-   let g:cpp_include_kind_order = ["c", "s", "t", "d", "f"]
+   " prefer tags in the order: class, struct, enum, typedef, define, function
+   let g:cpp_include_kind_order = ["c", "s", "g", "t", "d", "f"]
 endif
 
 if !exists('g:cpp_include_debug')
