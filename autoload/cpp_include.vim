@@ -49,7 +49,27 @@ function! cpp_include#include(symbol)
             let curpos[1] += 1
          endif
 
+         " jump to the include line and highlight it
+         let old_cursorline = 0
+         if g:cpp_include_show_include
+            call cursor(inc_line_num + 1, 0)
+            let old_cursorline = &cursorline
+            if old_cursorline == 0
+               set cursorline
+            endif
+            redraw
+         endif
+
          call cpp_include#print_info(printf("added '%s' at line %d", inc_str, inc_line_num + 1))
+
+         if g:cpp_include_show_include
+            call input("Press ENTER to continue")
+
+            " reset cursorline setting
+            if old_cursorline == 0
+               set nocursorline
+            endif
+         endif
       endif
    endif
 

@@ -12,6 +12,10 @@ if !exists('g:cpp_include_kind_order')
    let g:cpp_include_kind_order = ["c", "s", "g", "t", "d", "f"]
 endif
 
+if !exists('g:cpp_include_show_include')
+   let g:cpp_include_show_include = 1
+endif
+
 if !exists('g:cpp_include_debug')
    let g:cpp_include_debug = 0
 endif
