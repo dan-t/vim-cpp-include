@@ -228,7 +228,7 @@ function! s:select_line_num()
 endfunction
 
 function! s:parse_include(include_str)
-   let matches = matchlist(a:include_str, '\v^#include[ \t]+([<"]*)([^>"]+)([>"]*)$')
+   let matches = matchlist(a:include_str, '\v^#include[ \t]*([<"]*)([^>"]+)([>"]*)$')
    if empty(matches)
       return {}
    endif
