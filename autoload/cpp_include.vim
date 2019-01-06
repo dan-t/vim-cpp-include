@@ -79,12 +79,12 @@ endfunction
 
 function! cpp_include#print_error(msg)
   echohl ErrorMsg
-  echomsg printf('vim-cpp-include: %s', a:msg)
+  echomsg printf('cpp-include: %s', a:msg)
   echohl None
 endfunction
 
 function! cpp_include#print_info(msg)
-   echo printf('vim-cpp-include: %s', a:msg)
+   echo printf('cpp-include: %s', a:msg)
 endfunction
 
 function! s:split_by_kind(tags)
@@ -270,7 +270,7 @@ endfunction
 
 function! s:debug_print(msg)
    if g:cpp_include_debug
-      echo printf('vim-cpp-include: %s', a:msg)
+      echo printf('cpp-include: %s', a:msg)
    endif
 endfunction
 

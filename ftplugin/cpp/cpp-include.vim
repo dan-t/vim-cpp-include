@@ -3,7 +3,7 @@ if exists('b:did_ftplugin_cpp_include') && b:did_ftplugin_cpp_include
 endif
 
 if !exists('g:cpp_include_dirs') || len(g:cpp_include_dirs) == 0
-   call cpp_include#print_error("vim-cpp-include: Missing include directories in variable 'g:cpp_include_dirs'")
+   call cpp_include#print_error("missing include directories in variable 'g:cpp_include_dirs'")
    finish
 endif
 
