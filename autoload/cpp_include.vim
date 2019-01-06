@@ -242,7 +242,7 @@ function! s:find_all_includes()
    call cursor(1, 1)
    let line_nums = []
    while 1
-      let line_num = search('#include', empty(line_nums) ? 'cW' : 'W')
+      let line_num = search('^#include', empty(line_nums) ? 'cW' : 'W')
       if line_num == 0
          break
       endif
