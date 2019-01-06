@@ -1,5 +1,13 @@
 function! cpp_include#include(symbol)
+   " consider case when matching tags
+   let old_tagcase = &tagcase
+   set tagcase=match
+
    let tags = taglist('^' . a:symbol . '$')
+
+   " resetting tagcase
+   let &tagcase = old_tagcase
+
    if empty(tags)
       call cpp_include#print_error(printf("couldn't find any tags for '%s'", a:symbol))
       return
