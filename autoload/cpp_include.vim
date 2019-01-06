@@ -41,41 +41,56 @@ function! cpp_include#include(symbol)
          let inc_line_num = line_nums[-1]
       endif
 
+      let inc_line_selected = 0
       if inc_line_num != 0
          call s:debug_print(printf('add include below: %s', getline(inc_line_num)))
       else
          let inc_line_num = s:select_line_num()
+         let inc_line_selected = 1
       endif
 
       if inc_line_num != 0
          let inc_str = printf('#include "%s"', tag.filename)
-         call append(inc_line_num, inc_str)
 
-         " consider the added include for resetting the cursor position
-         if curpos[1] > inc_line_num
-            let curpos[1] += 1
+         let inc_line = getline(inc_line_num)
+         call s:debug_print(printf("inc_line='%s'", inc_line))
+
+         " if the include line only contains whitespace, then change the line,
+         " otherwise append the include string
+         if inc_line =~ '\v^[ \n\t]*$'
+            call setline(inc_line_num, inc_str)
+         else
+            call append(inc_line_num, inc_str)
+            let inc_line_num += 1
+
+            " consider the added include for resetting the cursor position
+            if curpos[1] >= inc_line_num
+               let curpos[1] += 1
+            endif
          endif
 
-         " jump to the include line and highlight it
-         let old_cursorline = 0
-         if g:cpp_include_show
-            call cursor(inc_line_num + 1, 0)
+         " only show the include line if the line wasn't explicitly selected by the user
+         if g:cpp_include_show && !inc_line_selected
+            " jump to the include line and highlight it
+            call cursor(inc_line_num, 0)
             let old_cursorline = &cursorline
             if old_cursorline == 0
                set cursorline
             endif
-            redraw
-         endif
 
-         call cpp_include#print_info(printf("added '%s' at line %d", inc_str, inc_line_num + 1))
+            if !g:cpp_include_debug
+               redraw!
+            endif
 
-         if g:cpp_include_show
-            call input("Press ENTER to continue")
+            call input(printf("cpp-include: added '%s' at line %d, Press ENTER to continue", inc_str, inc_line_num))
+            redraw!
 
             " reset cursorline setting
             if old_cursorline == 0
                set nocursorline
             endif
+         else
+            call cpp_include#print_info(printf("added '%s' at line %d", inc_str, inc_line_num))
          endif
       endif
    endif
