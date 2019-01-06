@@ -2,11 +2,6 @@ if exists('b:did_ftplugin_cpp_include') && b:did_ftplugin_cpp_include
    finish
 endif
 
-if !exists('g:cpp_include_dirs') || empty(g:cpp_include_dirs)
-   call cpp_include#print_error("missing include directories in variable 'g:cpp_include_dirs'")
-   finish
-endif
-
 if !exists('g:cpp_include_kind_order')
    " prefer tags in the order: class, struct, enum, typedef, define, function
    let g:cpp_include_kind_order = ["c", "s", "g", "t", "d", "f"]
@@ -15,9 +10,6 @@ endif
 if !exists('g:cpp_include_header_extensions')
    " only consider tags from files with one of these extensions
    let g:cpp_include_header_extensions = ["h", "", "hh", "hpp", "hxx"]
-elseif empty(g:cpp_include_header_extensions)
-   call cpp_include#print_error("missing header extensions in variable 'g:cpp_include_header_extensions'")
-   finish
 else
    let g:cpp_include_header_extensions = map(g:cpp_include_header_extensions, { i, e -> tolower(e) })
 endif

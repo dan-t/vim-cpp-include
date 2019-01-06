@@ -1,4 +1,8 @@
 function! cpp_include#include(symbol)
+   if !s:has_valid_settings()
+      return
+   endif
+
    " consider case when matching tags
    let old_tagcase = &tagcase
    set tagcase=match
@@ -331,6 +335,25 @@ function! s:debug_print(msg)
    if g:cpp_include_debug
       echo printf('cpp-include: %s', a:msg)
    endif
+endfunction
+
+function! s:has_valid_settings()
+   if !exists('g:cpp_include_kind_order') || empty(g:cpp_include_kind_order)
+      call cpp_include#print_error("missing tag kind order in variable 'g:cpp_include_kind_order'")
+      return 0
+   endif
+
+   if !exists('g:cpp_include_dirs') || empty(g:cpp_include_dirs)
+      call cpp_include#print_error("missing include directories in variable 'g:cpp_include_dirs'")
+      return 0
+   endif
+
+   if !exists('g:cpp_include_header_extensions') || empty(g:cpp_include_header_extensions)
+      call cpp_include#print_error("missing header extensions in variable 'g:cpp_include_header_extensions'")
+      return 0
+   endif
+
+   return 1
 endfunction
 
 " copied from http://peterodding.com/code/vim/profile/autoload/xolox/path.vim
