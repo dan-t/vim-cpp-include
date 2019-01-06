@@ -58,7 +58,7 @@ function! cpp_include#include(symbol)
 
          " jump to the include line and highlight it
          let old_cursorline = 0
-         if g:cpp_include_show_include
+         if g:cpp_include_show
             call cursor(inc_line_num + 1, 0)
             let old_cursorline = &cursorline
             if old_cursorline == 0
@@ -69,7 +69,7 @@ function! cpp_include#include(symbol)
 
          call cpp_include#print_info(printf("added '%s' at line %d", inc_str, inc_line_num + 1))
 
-         if g:cpp_include_show_include
+         if g:cpp_include_show
             call input("Press ENTER to continue")
 
             " reset cursorline setting

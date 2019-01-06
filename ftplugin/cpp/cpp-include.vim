@@ -22,8 +22,8 @@ else
    let g:cpp_include_header_extensions = map(g:cpp_include_header_extensions, { i, e -> tolower(e) })
 endif
 
-if !exists('g:cpp_include_show_include')
-   let g:cpp_include_show_include = 1
+if !exists('g:cpp_include_show')
+   let g:cpp_include_show = 1
 endif
 
 if !exists('g:cpp_include_debug')
