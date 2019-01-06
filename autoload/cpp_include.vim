@@ -8,15 +8,12 @@ function! cpp_include#include(symbol)
    " resetting tagcase
    let &tagcase = old_tagcase
 
+   let tags = s:filter_map_tags(tags)
+
    if empty(tags)
       call cpp_include#print_error(printf("couldn't find any tags for '%s'", a:symbol))
       return
    endif
-
-   " remove the include dir prefix from the filename
-   for tag in tags
-      let tag.filename = s:strip_include_dirs(tag.filename)
-   endfor
 
    call s:debug_print(printf('tags: %s', tags))
 
@@ -115,6 +112,17 @@ function! s:strip_include_dirs(filename)
       let fname = substitute(fname, dir, "", "")
    endfor
    return fname
+endfunction
+
+function! s:has_header_extension(filename)
+   let fileext = tolower(fnamemodify(a:filename, ':e'))
+   for ext in g:cpp_include_header_extensions
+      if ext == fileext
+         return 1
+      endif
+   endfor
+
+   return 0
 endfunction
 
 function! s:select_tag(tags)
@@ -242,6 +250,22 @@ function! s:find_all_includes()
       call add(line_nums, line_num)
    endwhile
    return line_nums
+endfunction
+
+function! s:filter_map_tags(tags)
+   let new_tags = []
+   for tag in a:tags
+      if !s:has_header_extension(tag.filename)
+         continue
+      endif
+
+      " remove the include dir prefix from the filename
+      let tag.filename = s:strip_include_dirs(tag.filename)
+
+      call add(new_tags, tag)
+   endfor
+
+   return new_tags
 endfunction
 
 " return the line number of the include with the best match
