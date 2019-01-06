@@ -18,6 +18,8 @@ function! cpp_include#include(symbol)
       let tag.filename = s:strip_include_dirs(tag.filename)
    endfor
 
+   call s:debug_print(printf('tags: %s', tags))
+
    let tag = s:select_tag(tags)
    if empty(tag)
       return
