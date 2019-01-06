@@ -227,14 +227,22 @@ function! s:select_line_num()
    return line_num < 1 || line_num > num_lines ? 0 : line_num
 endfunction
 
-" get the path from an include string:
-"    s:path('#include "foo/bar"') -> "foo/bar"
-"    s:path('#include <foo/bar>') -> "foo/bar"
-function! s:path(include_str)
-   let inc_split = split(a:include_str, ' ')
-   let user_dir_split = split(inc_split[1], '"')
-   let sys_dir_split = split(user_dir_split[0], '[<>]')
-   return sys_dir_split[0]
+function! s:parse_include(include_str)
+   let matches = matchlist(a:include_str, '\v^#include[ \t]+([<"]*)([^>"]+)([>"]*)$')
+   if empty(matches)
+      return {}
+   endif
+
+   let bracket = matches[1]
+   let kind = "unknown"
+   if bracket == '"'
+      let kind = "user"
+   elseif bracket == '<'
+      let kind = "sys"
+   endif
+
+   let path = matches[2]
+   return { 'path': path, 'kind': kind, 'string': a:include_str }
 endfunction
 
 function! s:find_include(tag)
@@ -291,7 +299,7 @@ function! s:best_match(tag, include_line_nums)
    let inc_comps = []
    for line_num in a:include_line_nums
       let inc_str = getline(line_num)
-      let inc_path = s:path(inc_str)
+      let inc_path = s:parse_include(inc_str).path
       let inc_split = s:split_path(inc_path)
       call add(inc_comps, inc_split)
    endfor
