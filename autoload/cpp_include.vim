@@ -143,10 +143,12 @@ function! s:select_tag(tags)
    let i = 1
    for tag in kind_tags
       let num_spaces = max_filename_len - len(tag.filename) + 1
-      let format_str = '%' . num_decs . 'd file: %s%' . num_spaces . 's, regex: %s'
+      let format_str = '%' . num_decs . 'd file: %s%' . num_spaces . 's, line: %s'
 
-      " collapse multiple spaces to one
-      let cmd = substitute(tag.cmd, '[ \t]\+', ' ', 'g')
+      " collapse multiple spaces to one and remove pattern match prefix and postfix
+      let cmd = substitute(tag.cmd, '\v[ \t]+', ' ', 'g')
+      let cmd = substitute(cmd, '\v/\^ *', '', 'g')
+      let cmd = substitute(cmd, '\v\$/', '', 'g')
 
       let inputList += [printf(format_str, i, tag.filename, ' ', cmd)]
       let i += 1
@@ -284,10 +286,10 @@ let s:windows_compatible = has('win32') || has('win64')
 function! s:split_path(path)
    if type(a:path) == type('')
       if s:windows_compatible
-         return split(a:path, '[\/]\+')
+         return split(a:path, '\v[\/]+')
       else
          let absolute = (a:path =~ '^/')
-         let segments = split(a:path, '/\+')
+         let segments = split(a:path, '\v/+')
          return absolute ? insert(segments, '/') : segments
       endif
    endif
