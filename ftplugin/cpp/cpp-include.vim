@@ -4,7 +4,7 @@ endif
 
 if !exists('g:cpp_include_kind_order')
    " prefer tags in the order: class, struct, enum, typedef, define, function
-   let g:cpp_include_kind_order = ["c", "s", "g", "t", "d", "f"]
+   let g:cpp_include_kind_order = ["c", "s", "g", "t", "d", "p", "f"]
 endif
 
 if !exists('g:cpp_include_header_extensions')
@@ -12,6 +12,10 @@ if !exists('g:cpp_include_header_extensions')
    let g:cpp_include_header_extensions = ["h", "", "hh", "hpp", "hxx"]
 else
    let g:cpp_include_header_extensions = map(g:cpp_include_header_extensions, { i, e -> tolower(e) })
+endif
+
+if !exists('g:cpp_include_sys_dirs')
+   let g:cpp_include_sys_dirs = []
 endif
 
 if !exists('g:cpp_include_show')

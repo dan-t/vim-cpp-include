@@ -12,14 +12,23 @@ function! cpp_include#include(symbol)
    " resetting tagcase
    let &tagcase = old_tagcase
 
-   let tags = s:filter_map_tags(tags)
+   let tags = filter(tags, { i, t -> s:is_cpp_header_file(t.filename) })
+   for tag in tags
+      let tag.file_kind = s:file_kind(tag.filename)
+      let tag.filename = s:strip_include_dirs(tag.filename)
+   endfor
 
    if empty(tags)
       call cpp_include#print_error(printf("couldn't find any tags for '%s'", a:symbol))
       return
    endif
 
-   call s:debug_print(printf('tags: %s', tags))
+   if g:cpp_include_debug
+      call s:debug_print(printf('found %d tags:', len(tags)))
+      for tag in tags
+         echo printf('  %s', tag)
+      endfor
+   endif
 
    let tag = s:select_tag(tags)
    if empty(tag)
@@ -33,10 +42,16 @@ function! cpp_include#include(symbol)
 
    let tag_inc = s:find_include(tag)
    if !empty(tag_inc)
-      call cpp_include#print_info(printf("already present '%s'", tag_inc))
+      call cpp_include#print_info(printf("already present '%s' at line %d", tag_inc.string, tag_inc.line))
    else
       let line_nums = s:find_all_includes()
-      call s:debug_print(printf('include line nums: %s', line_nums))
+
+      if g:cpp_include_debug
+         call s:debug_print(printf('found %d includes:', len(line_nums)))
+         for num in line_nums
+            echo printf('  line=%d  %s', num, getline(num))
+         endfor
+      endif
 
       let inc_line_num = s:best_match(tag, line_nums)
 
@@ -54,7 +69,7 @@ function! cpp_include#include(symbol)
       endif
 
       if inc_line_num != 0
-         let inc_str = printf('#include "%s"', tag.filename)
+         let inc_str = s:format_include(tag)
 
          let inc_line = getline(inc_line_num)
          call s:debug_print(printf("inc_line='%s'", inc_line))
@@ -86,7 +101,7 @@ function! cpp_include#include(symbol)
                redraw!
             endif
 
-            call input(printf("cpp-include: added '%s' at line %d, Press ENTER to continue", inc_str, inc_line_num))
+            call input(printf("cpp-include: added '%s' at line %d, Press ENTER to continue ...", inc_str, inc_line_num))
             redraw!
 
             " reset cursorline setting
@@ -109,6 +124,12 @@ function! cpp_include#print_error(msg)
   echohl None
 endfunction
 
+function! cpp_include#print_warning(msg)
+  echohl WarningMsg
+  echomsg printf('cpp-include: %s', a:msg)
+  echohl None
+endfunction
+
 function! cpp_include#print_info(msg)
    echo printf('cpp-include: %s', a:msg)
 endfunction
@@ -125,15 +146,31 @@ function! s:split_by_kind(tags)
    return tags_by_kind
 endfunction
 
+function! s:file_kind(filename)
+   for dir in g:cpp_include_user_dirs
+      if a:filename =~# dir
+         return 'user'
+      endif
+   endfor
+
+   for dir in g:cpp_include_sys_dirs
+      if a:filename =~# dir
+         return 'sys'
+      endif
+   endfor
+
+   return 'unknown'
+endfunction
+
 function! s:strip_include_dirs(filename)
    let fname = a:filename
-   for dir in g:cpp_include_dirs
+   for dir in (g:cpp_include_user_dirs + g:cpp_include_sys_dirs)
       let fname = substitute(fname, dir, "", "")
    endfor
    return fname
 endfunction
 
-function! s:has_header_extension(filename)
+function! s:is_cpp_header_file(filename)
    let fileext = tolower(fnamemodify(a:filename, ':e'))
    for ext in g:cpp_include_header_extensions
       if ext == fileext
@@ -231,6 +268,17 @@ function! s:select_line_num()
    return line_num < 1 || line_num > num_lines ? 0 : line_num
 endfunction
 
+function! s:format_include(tag)
+   let kind = a:tag.file_kind
+   if kind == 'user'
+      return printf('#include "%s"', a:tag.filename)
+   elseif kind == 'sys'
+      return printf('#include <%s>', a:tag.filename)
+   endif
+
+   throw printf("unexpected kind='%s'", kind)
+endfunction
+
 function! s:parse_include(include_str)
    let matches = matchlist(a:include_str, '\v^#include[ \t]*([<"]*)([^>"]+)([>"]*)$')
    if empty(matches)
@@ -238,30 +286,30 @@ function! s:parse_include(include_str)
    endif
 
    let bracket = matches[1]
-   let kind = "unknown"
+   let kind = 'unknown'
    if bracket == '"'
-      let kind = "user"
+      let kind = 'user'
    elseif bracket == '<'
-      let kind = "sys"
+      let kind = 'sys'
    endif
 
    let path = matches[2]
-   return { 'path': path, 'kind': kind, 'string': a:include_str }
+   let inc = { 'path': path, 'kind': kind, 'string': a:include_str }
+
+   call s:debug_print(printf('parsed include: %s', inc))
+
+   return inc
 endfunction
 
 function! s:find_include(tag)
    call cursor(1, 1)
-   let include_str = printf('#include "%s"', a:tag.filename)
-   if search(include_str, 'cn') != 0
-      return include_str
+   let include_str = s:format_include(a:tag)
+   let line = search(include_str, 'cn')
+   if line != 0
+      return { 'line': line, 'kind': a:tag.file_kind, 'string': include_str }
    endif
 
-   let include_str = printf('#include <%s>', a:tag.name)
-   if search(include_str, 'cn') != 0
-      return include_str
-   endif
-
-   return ''
+   return {}
 endfunction
 
 " returns a list of line numbers of all includes
@@ -269,53 +317,67 @@ function! s:find_all_includes()
    call cursor(1, 1)
    let line_nums = []
    while 1
-      let line_num = search('^#include', empty(line_nums) ? 'cW' : 'W')
+      let line_num = search('\v^[ \t]*#[ \t]*include', empty(line_nums) ? 'cW' : 'W')
       if line_num == 0
          break
       endif
 
       call add(line_nums, line_num)
    endwhile
+
+   if empty(line_nums)
+      return []
+   endif
+
+   " check if there's an #ifdef inbetween the #include
+   call cursor(line_nums[0], 1)
+   let ifdef_line = search('\v^[ \t]*#[ \t]*ifn?def', 'cW')
+   if ifdef_line != 0 && ifdef_line < line_nums[-1]
+      call input(printf('cpp-include: #ifdef inbetween #include at line %d detected, switch to manual mode, Press ENTER to continue ...', ifdef_line))
+      return []
+   endif
+
    return line_nums
 endfunction
 
-function! s:filter_map_tags(tags)
-   let new_tags = []
-   for tag in a:tags
-      if !s:has_header_extension(tag.filename)
+" return the line number of the include with the best match
+" with 'tag', where they have the same kind ('user', 'sys')
+" and most path components from the beginning are the same or
+" 0 in the case of no match
+function! s:best_match(tag, include_line_nums)
+   if empty(a:include_line_nums)
+      return 0
+   endif
+
+   let tag_comps = s:split_path(a:tag.filename)
+   let incs = []
+   for line_num in a:include_line_nums
+      let inc_str = getline(line_num)
+      let inc = s:parse_include(inc_str)
+      if inc.kind != a:tag.file_kind
          continue
       endif
 
-      " remove the include dir prefix from the filename
-      let tag.filename = s:strip_include_dirs(tag.filename)
+      let inc_split = s:split_path(inc.path)
 
-      call add(new_tags, tag)
+      call s:debug_print(printf("best_match consider path='%s', split='%s'", inc.path, inc_split))
+
+      call add(incs, [line_num, inc_split])
    endfor
 
-   return new_tags
-endfunction
+   " if no matching kind could be found, then
+   " just use the last include
+   if empty(incs)
+      return a:include_line_nums[-1]
+   endif
 
-" return the line number of the include with the best match
-" with 'tag', where the most path components from the beginning
-" are the same or 0 in the case of no match
-function! s:best_match(tag, include_line_nums)
-   let tag_comps = s:split_path(a:tag.filename)
-   let inc_comps = []
-   for line_num in a:include_line_nums
-      let inc_str = getline(line_num)
-      let inc_path = s:parse_include(inc_str).path
-      let inc_split = s:split_path(inc_path)
-      call add(inc_comps, inc_split)
-   endfor
-
-   let best_inc = -1
+   let best_inc = 0
    let best_num = 0
-   for inc_idx in range(len(inc_comps))
-      let icomps = inc_comps[inc_idx]
-      let min_num_comps = min([len(tag_comps), len(icomps)])
+   for [inc_line, inc_comps] in incs
+      let min_num_comps = min([len(tag_comps), len(inc_comps)])
       let num_matches = 0
       for i in range(min_num_comps)
-         if tag_comps[i] != icomps[i]
+         if tag_comps[i] != inc_comps[i]
             break
          endif
 
@@ -323,12 +385,13 @@ function! s:best_match(tag, include_line_nums)
       endfor
 
       if num_matches >= best_num
-         let best_inc = inc_idx
+         call s:debug_print(printf("new best match: num_matches=%d, inc_comps='%s'", num_matches, inc_comps))
+         let best_inc = inc_line
          let best_num = num_matches
       endif
    endfor
 
-   return best_inc == -1 ? 0 : a:include_line_nums[best_inc]
+   return best_inc
 endfunction
 
 function! s:debug_print(msg)
@@ -343,8 +406,8 @@ function! s:has_valid_settings()
       return 0
    endif
 
-   if !exists('g:cpp_include_dirs') || empty(g:cpp_include_dirs)
-      call cpp_include#print_error("missing include directories in variable 'g:cpp_include_dirs'")
+   if !exists('g:cpp_include_user_dirs') || empty(g:cpp_include_user_dirs)
+      call cpp_include#print_error("missing include directories in variable 'g:cpp_include_user_dirs'")
       return 0
    endif
 
