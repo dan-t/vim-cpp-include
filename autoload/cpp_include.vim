@@ -96,7 +96,7 @@ function! cpp_include#include(symbol)
                redraw!
             endif
 
-            call cpp_include#input(printf("added '%s' at line %d", tag_inc_str, inc_line))
+            call cpp_include#input(printf("added '%s' at line %d", tag_inc_str, inc_line), 1)
             redraw!
 
             " reset cursorline setting
@@ -120,14 +120,19 @@ function! cpp_include#print_error(msg)
 endfunction
 
 function! cpp_include#print_info(msg)
-   echohl Question
-   echomsg printf('cpp-include: %s', a:msg)
-   echohl None
+   echo printf('cpp-include: %s', a:msg)
 endfunction
 
-function! cpp_include#input(msg)
+function! cpp_include#input(msg, show_press_enter)
    echohl Question
-   let data = input(printf('cpp-include: %s, Press ENTER to continue ...', a:msg))
+   let str = printf('cpp-include: %s', a:msg)
+   call s:debug_print(printf("str='%s'", str))
+   if a:show_press_enter
+      let str .= ', Press ENTER to continue ...'
+      call s:debug_print(printf("str='%s'", str))
+   endif
+
+   let data = input(str)
    echohl None
    return data
 endfunction
@@ -254,9 +259,7 @@ function! s:select_line()
 
    redraw
 
-   echohl Question
-   let line = input(printf('Select line for include (1-%s): ', num_lines))
-   echohl None
+   let line = cpp_include#input(printf('Select line for include (1-%s): ', num_lines), 0)
    echo "\n"
 
    if old_number == 0
@@ -333,7 +336,7 @@ function! s:find_all_includes()
    call cursor(lines[0], 1)
    let ifdef_line = search('\v^[ \t]*#[ \t]*ifn?def', 'cW')
    if ifdef_line != 0 && ifdef_line < lines[-1]
-      call cpp_include#input(printf('#ifdef inbetween #include at line %d detected, switch to manual mode', ifdef_line))
+      call cpp_include#input(printf('#ifdef inbetween #include at line %d detected, switch to manual mode', ifdef_line), 1)
       return []
    endif
 
