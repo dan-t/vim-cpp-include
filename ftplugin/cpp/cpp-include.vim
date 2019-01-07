@@ -19,7 +19,7 @@ if !exists('g:cpp_include_sys_dirs')
 endif
 
 if !exists('g:cpp_include_show')
-   let g:cpp_include_show = 1
+   let g:cpp_include_show = 0
 endif
 
 if !exists('g:cpp_include_debug')
