@@ -3,15 +3,7 @@ function! cpp_include#include(symbol)
       return
    endif
 
-   " consider case when matching tags
-   let old_tagcase = &tagcase
-   set tagcase=match
-
-   let tags = taglist('^' . a:symbol . '$')
-
-   " resetting tagcase
-   let &tagcase = old_tagcase
-
+   let tags = s:taglist('^' . a:symbol . '$')
    let tags = filter(tags, { i, t -> s:is_cpp_header_file(t.filename) })
    for tag in tags
       let tag.file_kind = s:file_kind(tag.filename)
@@ -135,6 +127,19 @@ function! cpp_include#input(msg, show_press_enter)
    let data = input(str)
    echohl None
    return data
+endfunction
+
+function! s:taglist(regex)
+   " consider case when matching tags
+   let old_tagcase = &tagcase
+   set tagcase=match
+
+   let tags = taglist(a:regex)
+
+   " resetting tagcase
+   let &tagcase = old_tagcase
+
+   return tags
 endfunction
 
 function! s:split_by_kind(tags)
