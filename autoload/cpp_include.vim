@@ -375,11 +375,6 @@ function s:has_valid_settings()
       return 0
    endif
 
-   if !exists('g:cpp_include_user_dirs') || empty(g:cpp_include_user_dirs)
-      call cpp_include#print_error("missing include directories in variable 'g:cpp_include_user_dirs'")
-      return 0
-   endif
-
    if !exists('g:cpp_include_header_extensions') || empty(g:cpp_include_header_extensions)
       call cpp_include#print_error("missing header extensions in variable 'g:cpp_include_header_extensions'")
       return 0
