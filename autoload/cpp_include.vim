@@ -105,6 +105,33 @@ function cpp_include#input(msg, show_press_enter)
    return data
 endfunction
 
+function cpp_include#init_settings()
+   if !exists('g:cpp_include_kind_order')
+      " prefer tags in the order: class, struct, enum, typedef, define, function
+      let g:cpp_include_kind_order = ["c", "s", "g", "t", "d", "p", "f"]
+   endif
+
+   if !exists('g:cpp_include_header_extensions')
+      " only consider tags from files with one of these extensions
+      let g:cpp_include_header_extensions = ["h", "", "hh", "hpp", "hxx"]
+   else
+      let g:cpp_include_header_extensions = map(g:cpp_include_header_extensions, { i, e -> tolower(e) })
+   endif
+
+   if !exists('g:cpp_include_debug')
+      let g:cpp_include_debug = 0
+   endif
+
+   let g:cpp_include_user_dirs = s:init_dirs('cpp_include_user_dirs')
+   let g:cpp_include_sys_dirs = s:init_dirs('cpp_include_sys_dirs')
+   let g:cpp_include_std_dirs = s:init_dirs('cpp_include_std_dirs')
+endfunction
+
+function s:init_dirs(dirs_name)
+   let dirs = get(g:, a:dirs_name, [])
+   return map(dirs, { i, d -> s:ensure_ends_with_seperator(d) })
+endfunction
+
 function s:taglist(regex)
    " consider case when matching tags
    let old_tagcase = &tagcase
@@ -131,16 +158,19 @@ function s:split_by_kind(tags)
 endfunction
 
 function s:file_kind(filename)
-   for dir in g:cpp_include_user_dirs
-      if a:filename =~# dir
-         return 'user'
-      endif
-   endfor
+   let dirs_by_kind = {
+      \ 'user': g:cpp_include_user_dirs,
+      \ 'sys': g:cpp_include_sys_dirs,
+      \ 'std': g:cpp_include_std_dirs }
 
-   for dir in g:cpp_include_sys_dirs
-      if a:filename =~# dir
-         return 'sys'
-      endif
+   let is_abs = s:is_absolute(a:filename)
+   for [kind, dirs] in items(dirs_by_kind)
+      for dir in dirs
+         let has_file = is_abs ? a:filename =~# dir : filereadable(dir . a:filename)
+         if has_file
+            return kind
+         endif
+      endfor
    endfor
 
    return 'unknown'
@@ -252,7 +282,7 @@ function s:format_include(tag)
    let kind = a:tag.file_kind
    if kind == 'user'
       return printf('#include "%s"', a:tag.filename)
-   elseif kind == 'sys'
+   elseif kind == 'sys' || kind == 'std'
       return printf('#include <%s>', a:tag.filename)
    endif
 
@@ -266,16 +296,8 @@ function s:parse_include(line)
       return {}
    endif
 
-   let bracket = matches[1]
-   let kind = 'unknown'
-   if bracket == '"'
-      let kind = 'user'
-   elseif bracket == '<'
-      let kind = 'sys'
-   endif
-
    let path = matches[2]
-   let inc = { 'path': path, 'kind': kind, 'string': include_str, 'line': a:line }
+   let inc = { 'path': path, 'kind': s:file_kind(path), 'string': include_str, 'line': a:line }
 
    call s:debug_print(printf('parsed include: %s', inc))
 
@@ -383,9 +405,39 @@ function s:has_valid_settings()
    return 1
 endfunction
 
-" copied from http://peterodding.com/code/vim/profile/autoload/xolox/path.vim
 let s:windows_compatible = has('win32') || has('win64')
 
+" return the used path seperator in 'path', '/' or '\',
+" with none is found, return '/'
+function s:seperator(path)
+   if a:path =~ '/'
+      return '/'
+   elseif a:path =~ '\'
+      return '\'
+   endif
+
+   return '/'
+endfunction
+
+function s:ensure_ends_with_seperator(path)
+   if a:path !~ '\v[/\]$'
+      return a:path . s:seperator(a:path)
+   endif
+
+   return s:path
+endfunction
+
+function s:is_absolute(path)
+   if a:path =~ '^/'
+      return 1
+   elseif a:path =~ '\v^[A-Za-z]:'
+      return 1
+   endif
+
+   return 0
+endfunction
+
+" copied from http://peterodding.com/code/vim/profile/autoload/xolox/path.vim
 " split the path into its components:
 "    s:split_path('/foo/bar/goo')   -> ['/', 'foo', 'bar', 'goo']
 "    s:split_path('foo/bar/goo')    -> ['foo', 'bar', 'goo']
