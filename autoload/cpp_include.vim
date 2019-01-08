@@ -258,18 +258,14 @@ function s:select_line()
 
    normal gg
    let old_number = &number
-   if old_number == 0
-      set number
-   endif
-
+   set number
    redraw
 
    let line = cpp_include#input(printf('Select line for include (1-%s): ', num_lines), 0)
    echo "\n"
 
-   if old_number == 0
-      set nonumber
-   endif
+   " resetting number
+   let &number = old_number
 
    redraw
 
