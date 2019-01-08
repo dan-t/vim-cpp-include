@@ -1,3 +1,5 @@
+let s:windows_compatible = has('win32') || has('win64')
+
 function cpp_include#include(symbol)
    if !s:has_valid_settings()
       return
@@ -6,8 +8,9 @@ function cpp_include#include(symbol)
    let tags = s:taglist('^' . a:symbol . '$')
    let tags = filter(tags, { i, t -> s:is_cpp_header_file(t.filename) })
    for tag in tags
-      let tag.file_kind = s:file_kind(tag.filename)
-      let tag.filename = s:strip_include_dirs(tag.filename)
+      let [kind, dir] = s:file_kind_and_dir(tag.filename)
+      let tag.file_kind = kind
+      let tag.filename = substitute(tag.filename, dir, '', '')
    endfor
 
    if empty(tags)
@@ -129,7 +132,15 @@ endfunction
 
 function s:init_dirs(dirs_name)
    let dirs = get(g:, a:dirs_name, [])
-   return map(dirs, { i, d -> s:ensure_ends_with_seperator(d) })
+   let init_dirs = map(dirs, { i, d -> s:ensure_ends_with_seperator(d) })
+   return init_dirs
+endfunction
+
+function s:dirs_by_kind()
+   return {
+      \ 'user': g:cpp_include_user_dirs,
+      \ 'sys': g:cpp_include_sys_dirs,
+      \ 'std': g:cpp_include_std_dirs }
 endfunction
 
 function s:taglist(regex)
@@ -157,31 +168,18 @@ function s:split_by_kind(tags)
    return tags_by_kind
 endfunction
 
-function s:file_kind(filename)
-   let dirs_by_kind = {
-      \ 'user': g:cpp_include_user_dirs,
-      \ 'sys': g:cpp_include_sys_dirs,
-      \ 'std': g:cpp_include_std_dirs }
-
+function s:file_kind_and_dir(filename)
    let is_abs = s:is_absolute(a:filename)
-   for [kind, dirs] in items(dirs_by_kind)
+   for [kind, dirs] in items(s:dirs_by_kind())
       for dir in dirs
          let has_file = is_abs ? a:filename =~# dir : filereadable(dir . a:filename)
          if has_file
-            return kind
+            return [kind, dir]
          endif
       endfor
    endfor
 
-   return 'unknown'
-endfunction
-
-function s:strip_include_dirs(filename)
-   let fname = a:filename
-   for dir in (g:cpp_include_user_dirs + g:cpp_include_sys_dirs)
-      let fname = substitute(fname, dir, "", "")
-   endfor
-   return fname
+   return ['unknown', '']
 endfunction
 
 function s:is_cpp_header_file(filename)
@@ -297,7 +295,7 @@ function s:parse_include(line)
    endif
 
    let path = matches[2]
-   let inc = { 'path': path, 'kind': s:file_kind(path), 'string': include_str, 'line': a:line }
+   let inc = { 'path': path, 'kind': s:file_kind_and_dir(path)[0], 'string': include_str, 'line': a:line }
 
    call s:debug_print(printf('parsed include: %s', inc))
 
@@ -355,6 +353,7 @@ function s:best_match(tag, includes)
    " if no matching kind could be found, then
    " just use the last include
    if empty(kind_incs)
+      call s:debug_print(printf('a:include=%s', a:includes))
       return a:includes[-1]
    endif
 
@@ -405,26 +404,24 @@ function s:has_valid_settings()
    return 1
 endfunction
 
-let s:windows_compatible = has('win32') || has('win64')
-
 " return the used path seperator in 'path', '/' or '\',
 " with none is found, return '/'
 function s:seperator(path)
    if a:path =~ '/'
       return '/'
-   elseif a:path =~ '\'
-      return '\'
+   elseif a:path =~ '\\'
+      return '\\'
    endif
 
    return '/'
 endfunction
 
 function s:ensure_ends_with_seperator(path)
-   if a:path !~ '\v[/\]$'
+   if a:path !~ '\v[\\/]+$'
       return a:path . s:seperator(a:path)
    endif
 
-   return s:path
+   return a:path
 endfunction
 
 function s:is_absolute(path)
@@ -445,7 +442,7 @@ endfunction
 function s:split_path(path)
    if type(a:path) == type('')
       if s:windows_compatible
-         return split(a:path, '\v[\/]+')
+         return split(a:path, '\v[\\/]+')
       else
          let absolute = (a:path =~ '^/')
          let segments = split(a:path, '\v/+')
