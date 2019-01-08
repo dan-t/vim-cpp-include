@@ -18,10 +18,6 @@ if !exists('g:cpp_include_sys_dirs')
    let g:cpp_include_sys_dirs = []
 endif
 
-if !exists('g:cpp_include_show')
-   let g:cpp_include_show = 0
-endif
-
 if !exists('g:cpp_include_debug')
    let g:cpp_include_debug = 0
 endif

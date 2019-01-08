@@ -46,13 +46,11 @@ function cpp_include#include(symbol)
 
       let best_inc = s:best_match(tag, includes)
       let inc_line = 0
-      let inc_line_selected = 0
       if !empty(best_inc)
          call s:debug_print(printf('add include below: %s', best_inc.string))
          let inc_line = best_inc.line
       else
          let inc_line = s:select_line()
-         let inc_line_selected = 1
       endif
 
       if inc_line != 0
@@ -75,29 +73,7 @@ function cpp_include#include(symbol)
             endif
          endif
 
-         " only show the include line if the line wasn't explicitly selected by the user
-         if g:cpp_include_show && !inc_line_selected
-            " jump to the include line and highlight it
-            call cursor(inc_line, 0)
-            let old_cursorline = &cursorline
-            if old_cursorline == 0
-               set cursorline
-            endif
-
-            if !g:cpp_include_debug
-               redraw!
-            endif
-
-            call cpp_include#input(printf("added '%s' at line %d", tag_inc_str, inc_line), 1)
-            redraw!
-
-            " reset cursorline setting
-            if old_cursorline == 0
-               set nocursorline
-            endif
-         else
-            call cpp_include#print_info(printf("added '%s' at line %d", tag_inc_str, inc_line))
-         endif
+         call cpp_include#print_info(printf("added '%s' at line %d", tag_inc_str, inc_line))
       endif
    endif
 
