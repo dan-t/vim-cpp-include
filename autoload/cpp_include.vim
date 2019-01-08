@@ -1,4 +1,4 @@
-function! cpp_include#include(symbol)
+function cpp_include#include(symbol)
    if !s:has_valid_settings()
       return
    endif
@@ -105,17 +105,17 @@ function! cpp_include#include(symbol)
    call cursor(curpos[1], curpos[2])
 endfunction
 
-function! cpp_include#print_error(msg)
+function cpp_include#print_error(msg)
    echohl ErrorMsg
    echomsg printf('cpp-include: %s', a:msg)
    echohl None
 endfunction
 
-function! cpp_include#print_info(msg)
+function cpp_include#print_info(msg)
    echo printf('cpp-include: %s', a:msg)
 endfunction
 
-function! cpp_include#input(msg, show_press_enter)
+function cpp_include#input(msg, show_press_enter)
    echohl Question
    let str = printf('cpp-include: %s', a:msg)
    call s:debug_print(printf("str='%s'", str))
@@ -129,7 +129,7 @@ function! cpp_include#input(msg, show_press_enter)
    return data
 endfunction
 
-function! s:taglist(regex)
+function s:taglist(regex)
    " consider case when matching tags
    let old_tagcase = &tagcase
    set tagcase=match
@@ -142,7 +142,7 @@ function! s:taglist(regex)
    return tags
 endfunction
 
-function! s:split_by_kind(tags)
+function s:split_by_kind(tags)
    let tags_by_kind = {}
    for tag in a:tags
       if has_key(tags_by_kind, tag.kind)
@@ -154,7 +154,7 @@ function! s:split_by_kind(tags)
    return tags_by_kind
 endfunction
 
-function! s:file_kind(filename)
+function s:file_kind(filename)
    for dir in g:cpp_include_user_dirs
       if a:filename =~# dir
          return 'user'
@@ -170,7 +170,7 @@ function! s:file_kind(filename)
    return 'unknown'
 endfunction
 
-function! s:strip_include_dirs(filename)
+function s:strip_include_dirs(filename)
    let fname = a:filename
    for dir in (g:cpp_include_user_dirs + g:cpp_include_sys_dirs)
       let fname = substitute(fname, dir, "", "")
@@ -178,7 +178,7 @@ function! s:strip_include_dirs(filename)
    return fname
 endfunction
 
-function! s:is_cpp_header_file(filename)
+function s:is_cpp_header_file(filename)
    let fileext = tolower(fnamemodify(a:filename, ':e'))
    for ext in g:cpp_include_header_extensions
       if ext == fileext
@@ -189,7 +189,7 @@ function! s:is_cpp_header_file(filename)
    return 0
 endfunction
 
-function! s:select_tag(tags)
+function s:select_tag(tags)
    if empty(a:tags)
       return {}
    endif
@@ -250,7 +250,7 @@ function! s:select_tag(tags)
    return tag
 endfunction
 
-function! s:select_line()
+function s:select_line()
    let num_lines = line('$')
    if num_lines < 1
       return 0
@@ -276,7 +276,7 @@ function! s:select_line()
    return line < 1 || line > num_lines ? 0 : line
 endfunction
 
-function! s:format_include(tag)
+function s:format_include(tag)
    let kind = a:tag.file_kind
    if kind == 'user'
       return printf('#include "%s"', a:tag.filename)
@@ -287,7 +287,7 @@ function! s:format_include(tag)
    throw printf("unexpected kind='%s'", kind)
 endfunction
 
-function! s:parse_include(line)
+function s:parse_include(line)
    let include_str = getline(a:line)
    let matches = matchlist(include_str, '\v^#include[ \t]*([<"]*)([^>"]+)([>"]*)$')
    if empty(matches)
@@ -310,7 +310,7 @@ function! s:parse_include(line)
    return inc
 endfunction
 
-function! s:find_tag_include(tag, includes)
+function s:find_tag_include(tag, includes)
    for inc in a:includes
       if a:tag.filename == inc.path
          return inc
@@ -321,7 +321,7 @@ function! s:find_tag_include(tag, includes)
 endfunction
 
 " returns a list of all includes
-function! s:find_all_includes()
+function s:find_all_includes()
    call cursor(1, 1)
    let lines = []
    while 1
@@ -351,7 +351,7 @@ endfunction
 " return the include with the best match with 'tag', where they have the same
 " kind ('user', 'sys') and most path components from the beginning are the
 " same, or {} in the case of no match
-function! s:best_match(tag, includes)
+function s:best_match(tag, includes)
    if empty(a:includes)
       return {}
    endif
@@ -391,13 +391,13 @@ function! s:best_match(tag, includes)
    return empty(best_inc) ? a:includes[-1] : best_inc
 endfunction
 
-function! s:debug_print(msg)
+function s:debug_print(msg)
    if g:cpp_include_debug
       echo printf('cpp-include: %s', a:msg)
    endif
 endfunction
 
-function! s:has_valid_settings()
+function s:has_valid_settings()
    if !exists('g:cpp_include_kind_order') || empty(g:cpp_include_kind_order)
       call cpp_include#print_error("missing tag kind order in variable 'g:cpp_include_kind_order'")
       return 0
@@ -423,7 +423,7 @@ let s:windows_compatible = has('win32') || has('win64')
 "    s:split_path('/foo/bar/goo')   -> ['/', 'foo', 'bar', 'goo']
 "    s:split_path('foo/bar/goo')    -> ['foo', 'bar', 'goo']
 "    s:split_path('C:\foo\bar\goo') -> ['C:' 'foo', 'bar', 'goo']
-function! s:split_path(path)
+function s:split_path(path)
    if type(a:path) == type('')
       if s:windows_compatible
          return split(a:path, '\v[\/]+')
