@@ -419,15 +419,19 @@ function s:has_valid_settings()
 endfunction
 
 " return the used path seperator in 'path', '/' or '\',
-" with none is found, return '/'
+" if none is found return platform specific seperator
 function s:seperator(path)
    if a:path =~ '/'
       return '/'
-   elseif a:path =~ '\\'
-      return '\\'
+   elseif a:path =~ '\'
+      return '\'
    endif
 
-   return '/'
+   return os_seperator()
+endfunction
+
+function s:os_seperator()
+   return s:has_windows_os ? '\' : '/'
 endfunction
 
 function s:ensure_ends_with_seperator(path)
