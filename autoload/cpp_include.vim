@@ -443,13 +443,11 @@ function s:ensure_ends_with_seperator(path)
 endfunction
 
 function s:is_absolute(path)
-   if a:path =~ '^/'
-      return 1
-   elseif a:path =~ '\v^[A-Za-z]:'
-      return 1
+   if s:has_windows_os
+      return a:path =~ '\v^[A-Za-z]:'
    endif
 
-   return 0
+   return a:path =~ '^/'
 endfunction
 
 " copied from http://peterodding.com/code/vim/profile/autoload/xolox/path.vim
