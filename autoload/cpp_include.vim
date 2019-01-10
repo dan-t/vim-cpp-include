@@ -6,7 +6,7 @@ function cpp_include#include(symbol)
    endif
 
    let tags = s:taglist('^' . a:symbol . '$')
-   let tags = filter(tags, { i, t -> s:is_cpp_header_file(t.filename) })
+   call filter(tags, { i, t -> s:is_cpp_header_file(t.filename) })
    for tag in tags
       let [kind, dir] = s:file_kind_and_dir(tag.filename)
       let tag.file_kind = kind
@@ -359,12 +359,12 @@ function s:best_match(tag, includes)
       return {}
    endif
 
-   let kind_incs = filter(a:includes, { idx, inc -> inc.kind == a:tag.file_kind })
+   let kind_incs = deepcopy(a:includes)
+   call filter(kind_incs, { idx, inc -> inc.kind == a:tag.file_kind })
 
    " if no matching kind could be found, then
    " just use the last include
    if empty(kind_incs)
-      call s:log('a:include=%s', a:includes)
       return a:includes[-1]
    endif
 
