@@ -110,7 +110,7 @@ function cpp_include#init_settings()
       let g:cpp_include_log_file = 'vim_cpp_include.log'
    endif
 
-   if g:cpp_include_log && exists('g:cpp_include_log_file')
+   if exists('g:cpp_include_log_file')
       " clear log file
       call writefile([], g:cpp_include_log_file)
    endif
