@@ -1,4 +1,4 @@
-let s:windows_compatible = has('win32') || has('win64')
+let s:has_windows_os = has('win32') || has('win64')
 
 function cpp_include#include(symbol)
    if !s:has_valid_settings()
@@ -454,7 +454,7 @@ endfunction
 "    s:split_path('C:\foo\bar\goo') -> ['C:' 'foo', 'bar', 'goo']
 function s:split_path(path)
    if type(a:path) == type('')
-      if s:windows_compatible
+      if s:has_windows_os
          return split(a:path, '\v[\\/]+')
       else
          let absolute = (a:path =~ '^/')
