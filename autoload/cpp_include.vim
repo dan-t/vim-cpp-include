@@ -126,7 +126,7 @@ function cpp_include#init_settings()
       " only consider tags from files with one of these extensions
       let g:cpp_include_header_extensions = ["h", "", "hh", "hpp", "hxx"]
    else
-      let g:cpp_include_header_extensions = map(g:cpp_include_header_extensions, { i, e -> tolower(e) })
+      call map(g:cpp_include_header_extensions, { i, e -> tolower(e) })
    endif
 
    call s:log('cpp_include_header_extensions=%s', g:cpp_include_header_extensions)
@@ -143,8 +143,8 @@ endfunction
 
 function s:init_dirs(dirs_name)
    let dirs = get(g:, a:dirs_name, [])
-   let init_dirs = map(dirs, { i, d -> s:ensure_ends_with_seperator(d) })
-   return init_dirs
+   call map(dirs, { i, d -> s:ensure_ends_with_seperator(d) })
+   return dirs
 endfunction
 
 function s:dirs_by_kind()
@@ -348,7 +348,8 @@ function s:find_all_includes()
       return []
    endif
 
-   return map(lines, { idx, line -> s:parse_include(line) })
+   call map(lines, { idx, line -> s:parse_include(line) })
+   return lines
 endfunction
 
 " return the include with the best match with 'tag', where they have the same
