@@ -14,13 +14,13 @@ function cpp_include#include(symbol)
    endfor
 
    if empty(tags)
-      call cpp_include#print_error(printf("couldn't find any tags for '%s'", a:symbol))
+      call cpp_include#print_error("couldn't find any tags for '%s'", a:symbol)
       return
    endif
 
    if g:cpp_include_log
       for tag in tags
-         call s:log(printf('found tag: %s', tag))
+         call s:log('found tag: %s', tag)
       endfor
    endif
 
@@ -29,7 +29,7 @@ function cpp_include#include(symbol)
       return
    endif
 
-   call s:log(printf('selected tag: %s', tag))
+   call s:log('selected tag: %s', tag)
 
    " save current cursor position
    let curpos = getcurpos() 
@@ -37,12 +37,12 @@ function cpp_include#include(symbol)
    let includes = s:find_all_includes()
    let tag_inc = s:find_tag_include(tag, includes)
    if !empty(tag_inc)
-      call cpp_include#print_info(printf("already present '%s' at line %d", tag_inc.string, tag_inc.line))
+      call cpp_include#print_info("already present '%s' at line %d", tag_inc.string, tag_inc.line)
    else
       let best_inc = s:best_match(tag, includes)
       let inc_line = 0
       if !empty(best_inc)
-         call s:log(printf('add include below: %s', best_inc.string))
+         call s:log('add include below: %s', best_inc.string)
          let inc_line = best_inc.line
       else
          let inc_line = s:select_line()
@@ -52,7 +52,7 @@ function cpp_include#include(symbol)
          let tag_inc_str = s:format_include(tag)
 
          let inc_line_str = getline(inc_line)
-         call s:log(printf("inc_line: %d '%s'", inc_line, inc_line_str))
+         call s:log("inc_line: %d '%s'", inc_line, inc_line_str)
 
          " if the include line only contains whitespace, then change the line,
          " otherwise append the include string
@@ -68,7 +68,7 @@ function cpp_include#include(symbol)
             endif
          endif
 
-         call cpp_include#print_info(printf("added '%s' at line %d", tag_inc_str, inc_line))
+         call cpp_include#print_info("added '%s' at line %d", tag_inc_str, inc_line)
       endif
    endif
 
@@ -76,43 +76,34 @@ function cpp_include#include(symbol)
    call cursor(curpos[1], curpos[2])
 endfunction
 
-function cpp_include#print_error(msg)
+function cpp_include#print_error(...)
    echohl ErrorMsg
-   echomsg printf('cpp-include: %s', a:msg)
+   let msg = call('printf', a:000)
+   echomsg printf('cpp-include: %s', msg)
    echohl None
 endfunction
 
-function cpp_include#print_info(msg)
-   echo printf('cpp-include: %s', a:msg)
+function cpp_include#print_info(...)
+   let msg = call('printf', a:000)
+   echo printf('cpp-include: %s', msg)
 endfunction
 
-function cpp_include#input(msg, show_press_enter)
+function cpp_include#input(...)
    echohl Question
-   let str = printf('cpp-include: %s', a:msg)
-   call s:log(printf("str='%s'", str))
-   if a:show_press_enter
-      let str .= ', Press ENTER to continue ...'
-      call s:log(printf("str='%s'", str))
-   endif
-
-   let data = input(str)
+   let msg = printf('cpp-include: %s', call('printf', a:000))
+   let data = input(msg)
    echohl None
    return data
 endfunction
 
+function cpp_include#wait_for_enter(...)
+   echohl Question
+   let msg = printf('cpp-include: %s   Press ENTER to continue ...', call('printf', a:000))
+   call input(msg)
+   echohl None
+endfunction
+
 function cpp_include#init_settings()
-   if !exists('g:cpp_include_kind_order')
-      " prefer tags in the order: class, struct, enum, union, typedef, define, function prototype, function
-      let g:cpp_include_kind_order = ["c", "s", "g", "u", "t", "d", "p", "f"]
-   endif
-
-   if !exists('g:cpp_include_header_extensions')
-      " only consider tags from files with one of these extensions
-      let g:cpp_include_header_extensions = ["h", "", "hh", "hpp", "hxx"]
-   else
-      let g:cpp_include_header_extensions = map(g:cpp_include_header_extensions, { i, e -> tolower(e) })
-   endif
-
    if !exists('g:cpp_include_log')
       let g:cpp_include_log = 0
    elseif !exists('g:cpp_include_log_file')
@@ -124,9 +115,30 @@ function cpp_include#init_settings()
       call writefile([], g:cpp_include_log_file)
    endif
 
+   if !exists('g:cpp_include_kind_order')
+      " prefer tags in the order: class, struct, enum, union, typedef, define, function prototype, function
+      let g:cpp_include_kind_order = ["c", "s", "g", "u", "t", "d", "p", "f"]
+   endif
+
+   call s:log('cpp_include_kind_order=%s', g:cpp_include_kind_order)
+
+   if !exists('g:cpp_include_header_extensions')
+      " only consider tags from files with one of these extensions
+      let g:cpp_include_header_extensions = ["h", "", "hh", "hpp", "hxx"]
+   else
+      let g:cpp_include_header_extensions = map(g:cpp_include_header_extensions, { i, e -> tolower(e) })
+   endif
+
+   call s:log('cpp_include_header_extensions=%s', g:cpp_include_header_extensions)
+
    let g:cpp_include_user_dirs = s:init_dirs('cpp_include_user_dirs')
+   call s:log('cpp_include_user_dirs=%s', g:cpp_include_user_dirs)
+
    let g:cpp_include_sys_dirs = s:init_dirs('cpp_include_sys_dirs')
+   call s:log('cpp_include_sys_dirs=%s', g:cpp_include_sys_dirs)
+
    let g:cpp_include_std_dirs = s:init_dirs('cpp_include_std_dirs')
+   call s:log('cpp_include_std_dirs=%s', g:cpp_include_std_dirs)
 endfunction
 
 function s:init_dirs(dirs_name)
@@ -264,7 +276,7 @@ function s:select_line()
    set number
    redraw
 
-   let line = cpp_include#input(printf('Select line for include (1-%s): ', num_lines), 0)
+   let line = cpp_include#input('Select line for include (1-%s): ', num_lines)
    echo "\n"
 
    " resetting number
@@ -296,7 +308,7 @@ function s:parse_include(line)
    let path = matches[2]
    let inc = { 'path': path, 'kind': s:file_kind_and_dir(path)[0], 'string': include_str, 'line': a:line }
 
-   call s:log(printf('parsed include: %s', inc))
+   call s:log('parsed include: %s', inc)
 
    return inc
 endfunction
@@ -332,7 +344,7 @@ function s:find_all_includes()
    call cursor(lines[0], 1)
    let ifdef_line = search('\v^[ \t]*#[ \t]*ifn?def', 'cW')
    if ifdef_line != 0 && ifdef_line < lines[-1]
-      call cpp_include#input(printf('#ifdef inbetween #include at line %d detected, switch to manual mode', ifdef_line), 1)
+      call cpp_include#wait_for_enter('#ifdef inbetween #include at line %d detected, switch to manual mode', ifdef_line)
       return []
    endif
 
@@ -352,7 +364,7 @@ function s:best_match(tag, includes)
    " if no matching kind could be found, then
    " just use the last include
    if empty(kind_incs)
-      call s:log(printf('a:include=%s', a:includes))
+      call s:log('a:include=%s', a:includes)
       return a:includes[-1]
    endif
 
@@ -373,7 +385,7 @@ function s:best_match(tag, includes)
       endfor
 
       if num_matches >= best_num
-         call s:log(printf("new best match: num_matches=%d, path_comps='%s'", num_matches, path_comps))
+         call s:log("new best match: num_matches=%d, path_comps='%s'", num_matches, path_comps)
          let best_inc = inc
          let best_num = num_matches
       endif
@@ -383,9 +395,10 @@ function s:best_match(tag, includes)
    return empty(best_inc) ? a:includes[-1] : best_inc
 endfunction
 
-function s:log(msg)
+function s:log(...)
    if g:cpp_include_log
-      let list = type(a:msg) == type([]) ? a:msg : [a:msg]
+      let msg = call('printf', a:000)
+      let list = type(msg) == type([]) ? msg : [msg]
       call writefile(list, g:cpp_include_log_file, 'a')
    endif
 endfunction
