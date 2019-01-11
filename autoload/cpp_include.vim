@@ -125,8 +125,6 @@ function cpp_include#init_settings()
    if !exists('g:cpp_include_header_extensions')
       " only consider tags from files with one of these extensions
       let g:cpp_include_header_extensions = ["h", "", "hh", "hpp", "hxx"]
-   else
-      call map(g:cpp_include_header_extensions, { i, e -> tolower(e) })
    endif
 
    call s:log('cpp_include_header_extensions=%s', g:cpp_include_header_extensions)
@@ -192,7 +190,7 @@ endfunction
 function s:is_cpp_header_file(filename)
    let fileext = tolower(fnamemodify(a:filename, ':e'))
    for ext in g:cpp_include_header_extensions
-      if ext == fileext
+      if tolower(ext) == tolower(fileext)
          return 1
       endif
    endfor
