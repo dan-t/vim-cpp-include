@@ -116,8 +116,8 @@ function cpp_include#init_settings()
    endif
 
    if !exists('g:cpp_include_kind_order')
-      " prefer tags in the order: class, struct, enum, union, typedef, define, function prototype, function
-      let g:cpp_include_kind_order = ["c", "s", "g", "u", "t", "d", "p", "f"]
+      " prefer tags in the order: class, struct, enum, union, typedef, define, function prototype, function, extern/forward declarations
+      let g:cpp_include_kind_order = ["c", "s", "g", "u", "t", "d", "p", "f", "x"]
    endif
 
    call s:log('cpp_include_kind_order=%s', g:cpp_include_kind_order)
