@@ -177,6 +177,7 @@ function s:file_kind_and_dir(filename)
       endif
 
       for dir in data.dirs
+         let dir = s:ensure_ends_with_seperator(dir)
          let has_file = is_abs ? a:filename =~# dir : filereadable(dir . a:filename)
          if has_file
             return [kind, dir]
