@@ -131,27 +131,17 @@ function cpp_include#init_settings()
 
    call s:log('cpp_include_header_extensions=%s', g:cpp_include_header_extensions)
 
-   let g:cpp_include_user_dirs = s:init_dirs('cpp_include_user_dirs')
-   call s:log('cpp_include_user_dirs=%s', g:cpp_include_user_dirs)
+   if !exists('g:cpp_include_locations')
+      let g:cpp_include_locations = {}
+   endif
 
-   let g:cpp_include_sys_dirs = s:init_dirs('cpp_include_sys_dirs')
-   call s:log('cpp_include_sys_dirs=%s', g:cpp_include_sys_dirs)
+   call s:log('cpp_include_locations=%s', g:cpp_include_locations)
 
-   let g:cpp_include_std_dirs = s:init_dirs('cpp_include_std_dirs')
-   call s:log('cpp_include_std_dirs=%s', g:cpp_include_std_dirs)
-endfunction
+   if !exists('g:cpp_include_default_surround')
+      let g:cpp_include_default_surround = '"'
+   endif
 
-function s:init_dirs(dirs_name)
-   let dirs = get(g:, a:dirs_name, [])
-   call map(dirs, { i, d -> s:ensure_ends_with_seperator(d) })
-   return dirs
-endfunction
-
-function s:dirs_by_kind()
-   return {
-      \ 'user': g:cpp_include_user_dirs,
-      \ 'sys': g:cpp_include_sys_dirs,
-      \ 'std': g:cpp_include_std_dirs }
+   call s:log('cpp_include_default_surround=%s', g:cpp_include_default_surround)
 endfunction
 
 function s:taglist(regex)
@@ -181,8 +171,12 @@ endfunction
 
 function s:file_kind_and_dir(filename)
    let is_abs = s:is_absolute(a:filename)
-   for [kind, dirs] in items(s:dirs_by_kind())
-      for dir in dirs
+   for [kind, data] in items(g:cpp_include_locations)
+      if !has_key(data, 'dirs')
+         continue
+      endif
+
+      for dir in data.dirs
          let has_file = is_abs ? a:filename =~# dir : filereadable(dir . a:filename)
          if has_file
             return [kind, dir]
@@ -190,7 +184,8 @@ function s:file_kind_and_dir(filename)
       endfor
    endfor
 
-   return ['unknown', '']
+   call s:log('no kind found for: %s', a:filename)
+   return ['undefined', '']
 endfunction
 
 function s:is_cpp_header_file(filename)
@@ -288,14 +283,27 @@ function s:select_line()
 endfunction
 
 function s:format_include(tag)
-   let kind = a:tag.file_kind
-   if kind == 'user'
+   let surround = s:include_surround(a:tag.file_kind)
+   if surround == '"'
       return printf('#include "%s"', a:tag.filename)
-   elseif kind == 'sys' || kind == 'std'
+   elseif surround == '<' || surround == '>'
       return printf('#include <%s>', a:tag.filename)
    endif
 
-   throw printf("unexpected kind='%s'", kind)
+   throw printf("unexpected include surround='%s'", surround)
+endfunction
+
+function s:include_surround(kind)
+   let surround = g:cpp_include_default_surround
+   if has_key(g:cpp_include_locations, a:kind)
+      let loc = g:cpp_include_locations[a:kind]
+      if has_key(loc, 'surround')
+         let surround = loc.surround
+      endif
+   endif
+
+   call s:log('kind=%s, surround=%s', a:kind, surround)
+   return surround
 endfunction
 
 function s:parse_include(line)
@@ -436,7 +444,8 @@ endfunction
 
 function s:ensure_ends_with_seperator(path)
    if a:path !~ '\v[\\/]+$'
-      return a:path . s:seperator(a:path)
+      let sep = s:seperator(a:path)
+      return a:path . sep
    endif
 
    return a:path
