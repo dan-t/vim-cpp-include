@@ -47,6 +47,19 @@ function! fn#map(iterable, fn)
    throw printf("fn#map: unexpected type of 'iterable': '%s'", type(a:iterable))
 endfunction
 
+function! fn#find(iterable, fn)
+   let found = [0, 0]
+   let list = type(a:iterable) == type([]) ? a:iterable : items(a:iterable)
+   for i in list
+      if a:fn(i)
+         let found = [1, i]
+         break
+      endif
+   endfor
+
+   return found
+endfunction
+
 " the maximum value of the items in 'iterable', optional
 " function for mapping the item before comparision
 "
