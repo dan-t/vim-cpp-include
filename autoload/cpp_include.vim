@@ -115,12 +115,12 @@ function cpp_include#init_settings()
       call writefile([], g:cpp_include_log_file)
    endif
 
-   if !exists('g:cpp_include_kind_order')
+   if !exists('g:cpp_include_kinds_order')
       " prefer tags in the order: class, struct, enum, union, typedef, define, function prototype, function, extern/forward declarations
-      let g:cpp_include_kind_order = ["c", "s", "g", "u", "t", "d", "p", "f", "x"]
+      let g:cpp_include_kinds_order = [["c", "s", "g", "u", "t", "d"], ["p", "f", "x"]]
    endif
 
-   call s:log('cpp_include_kind_order=%s', g:cpp_include_kind_order)
+   call s:log('cpp_include_kinds_order=%s', g:cpp_include_kinds_order)
 
    if !exists('g:cpp_include_header_extensions')
       " only consider tags from files with one of these extensions
@@ -155,6 +155,7 @@ function s:taglist(regex)
    return tags
 endfunction
 
+" split tags by ctags kind"
 function s:split_by_kind(tags)
    let tags_by_kind = {}
    for tag in a:tags
@@ -203,36 +204,41 @@ function s:select_tag(tags)
       return {}
    endif
 
-   let tags_by_kind = s:split_by_kind(a:tags)
-   let kind_tags = []
-   for kind in g:cpp_include_kind_order
-      if has_key(tags_by_kind, kind)
-         let kind_tags = tags_by_kind[kind]
-         break
-      endif
-   endfor
+   let filtered_tags = []
+   if empty(g:cpp_include_kinds_order)
+      let filtered_tags = tags
+   else
+      let tags_by_kind = s:split_by_kind(a:tags)
+      for kinds in g:cpp_include_kinds_order
+         let kinds = type(kinds) == type([]) ? kinds : [kinds]
+         for kind in kinds
+            if has_key(tags_by_kind, kind)
+               let filtered_tags += tags_by_kind[kind]
+            endif
+         endfor
 
-   let num_kind_tags = len(kind_tags)
-   if num_kind_tags == 0
+         break
+      endfor
+   endif
+
+   let num_tags = len(filtered_tags)
+   if num_tags == 0
       return {}
    endif
 
-   if num_kind_tags == 1
-      return kind_tags[0]
+   if num_tags == 1
+      return filtered_tags[0]
    endif
 
-   let max_filename_len = 0
-   for tag in kind_tags
-      let max_filename_len = max([max_filename_len, len(tag.filename)])
-   endfor
+   let max_filename_len = fn#max(fn#map(filtered_tags, { tag -> len(tag.filename) }))
 
-   " sort kind_tags by filename
-   let kind_tags = sort(kind_tags, { x, y -> x.filename > y.filename })
+   " sort filtered_tags by filename
+   let filtered_tags = sort(filtered_tags, { x, y -> x.filename > y.filename })
 
-   let num_decs = len(printf('%d', len(kind_tags)))
+   let num_decs = len(printf('%d', len(filtered_tags)))
    let inputList = ['Select file to include:']
    let i = 1
-   for tag in kind_tags
+   for tag in filtered_tags
       let num_spaces = max_filename_len - len(tag.filename) + 1
       let format_str = '%' . num_decs . 'd file: %s%' . num_spaces . 's, line: %s'
 
@@ -251,11 +257,11 @@ function s:select_tag(tags)
       return {}
    endif
 
-   if idx < 1 || idx > num_kind_tags
+   if idx < 1 || idx > num_tags
       return {}
    endif
 
-   let tag = kind_tags[idx - 1]
+   let tag = filtered_tags[idx - 1]
    return tag
 endfunction
 
@@ -412,11 +418,6 @@ function s:log(...)
 endfunction
 
 function s:has_valid_settings()
-   if !exists('g:cpp_include_kind_order') || empty(g:cpp_include_kind_order)
-      call cpp_include#print_error("missing tag kind order in variable 'g:cpp_include_kind_order'")
-      return 0
-   endif
-
    if !exists('g:cpp_include_header_extensions') || empty(g:cpp_include_header_extensions)
       call cpp_include#print_error("missing header extensions in variable 'g:cpp_include_header_extensions'")
       return 0
