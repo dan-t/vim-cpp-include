@@ -96,8 +96,44 @@ endfunction
 "   fn#min({'a': 2, 'b': 1}, { x, y -> x[0] < x[0] })
 "   => ['a', 2]
 function! fn#min(iterable, ...)
-   let Fn = get(a:, 1, { x -> x })
-   return fn#fold(a:iterable, { x, y -> Fn(x) < Fn(y) ? x : y })
+   let Fn = get(a:, 1, { x, y -> x < y })
+   return fn#fold(a:iterable, { x, y -> Fn(x, y) ? x : y })
+endfunction
+
+function! fn#test()
+   let v:errors = []
+
+   call assert_equal(6, fn#fold([1, 2, 3], { i, acc -> i + acc }))
+   call assert_equal('abc', fn#fold(['a', 'b', 'c'], { i, acc -> acc . i }))
+
+   call assert_equal([2, 3, 4], fn#map([1, 2, 3], { x -> x + 1 }))
+   call assert_equal({'aa': 2, 'bb': 4}, fn#map({'a': 1, 'b': 2}, { kv -> [kv[0] . kv[0], kv[1] + kv[1]] }))
+
+   call assert_equal([0, 0], fn#find([], { x -> x == 0 }))
+   call assert_equal([1, 0], fn#find([0], { x -> x == 0 }))
+   call assert_equal([1, 1], fn#find([0, 1], { x -> x == 1 }))
+   call assert_equal([0, 0], fn#find({}, { kv -> kv[0] == 'a' }))
+   call assert_equal([1, ['a', 1]], fn#find({'a': 1, 'b': 2}, { kv -> kv[0] == 'a' }))
+   call assert_equal([1, ['b', 2]], fn#find({'a': 1, 'b': 2}, { kv -> kv[1] == 2 }))
+
+   call assert_equal(3, fn#max([1, 2, 3]))
+   call assert_equal(3, fn#max([1, 2, 3], { x, y -> x > y }))
+   call assert_equal(['a', 2], fn#max({'a': 2, 'b': 1}, { x, y -> x[1] > y[1] }))
+   call assert_equal(['b', 1], fn#max({'a': 2, 'b': 1}, { x, y -> x[0] > y[0] }))
+
+   call assert_equal(1, fn#min([1, 2, 3]))
+   call assert_equal(1, fn#min([1, 2, 3], { x, y -> x < y }))
+   call assert_equal(['b', 1], fn#min({'a': 2, 'b': 1}, { x, y -> x[1] < y[1] }))
+   call assert_equal(['a', 2], fn#min({'a': 2, 'b': 1}, { x, y -> x[0] < x[0] }))
+
+   if !empty(v:errors)
+      let msg = ''
+      echohl ErrorMsg
+      for e in v:errors
+         echomsg printf('%s', e)
+      endfor
+      echohl None
+   endif
 endfunction
 
 function! s:map_list(list, fn)
