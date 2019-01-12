@@ -35,7 +35,7 @@ function! fn#map(iterable, fn)
       return s:map_dict(a:iterable, a:fn)
    endif
 
-   throw printf("Unexpected type of 'iterable' for fn#map: '%s'", type(a:iterable))
+   throw printf("fn#map: unexpected type of 'iterable': '%s'", type(a:iterable))
 endfunction
 
 function! fn#max(iterable, ...)
