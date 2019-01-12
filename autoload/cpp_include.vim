@@ -217,7 +217,9 @@ function s:select_tag(tags)
             endif
          endfor
 
-         break
+         if !empty(filtered_tags)
+            break
+         endif
       endfor
    endif
 
