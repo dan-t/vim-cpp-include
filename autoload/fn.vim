@@ -28,7 +28,8 @@ function! fn#fold(iterable, fn)
    return val
 endfunction
 
-" map 'fn' over 'iterable' (list or dict)
+" calls 'fn' on every item of 'iterable' and
+" returns a new list/dict with the mapped items
 "
 " Examples:
 " ---------
@@ -61,21 +62,24 @@ function! fn#find(iterable, fn)
 endfunction
 
 " the maximum value of the items in 'iterable', optional
-" function for mapping the item before comparision
+" function for comparing two items
 "
 " Examples:
 " ---------
 "   fn#max([1, 2, 3])
 "   => 3
 "
-"   fn#max({'a': 2, 'b': 1}, { kv -> kv[1] })
+"   fn#max([1, 2, 3], { x, y -> x > y })
+"   => 3
+"
+"   fn#max({'a': 2, 'b': 1}, { x, y -> x[1] > y[1] })
 "   => ['a', 2]
 "
-"   fn#max({'a': 2, 'b': 1}, { kv -> kv[0] })
+"   fn#max({'a': 2, 'b': 1}, { x, y -> x[0] > y[0] })
 "   => ['b', 1]
 function! fn#max(iterable, ...)
-   let Fn = get(a:, 1, { x -> x })
-   return fn#fold(a:iterable, { x, y -> Fn(x) > Fn(y) ? x : y })
+   let Fn = get(a:, 1, { x, y -> x > y })
+   return fn#fold(a:iterable, { x, y -> Fn(x, y) ? x : y })
 endfunction
 
 " the minimum value of the items in 'iterable', optional
@@ -86,10 +90,10 @@ endfunction
 "   fn#min([1, 2, 3])
 "   => 1
 "
-"   fn#min({'a': 2, 'b': 1}, { kv -> kv[1] })
+"   fn#min({'a': 2, 'b': 1}, { x, y -> x[1] < y[1] })
 "   => ['b', 1]
 "
-"   fn#min({'a': 2, 'b': 1}, { kv -> kv[0] })
+"   fn#min({'a': 2, 'b': 1}, { x, y -> x[0] < x[0] })
 "   => ['a', 2]
 function! fn#min(iterable, ...)
    let Fn = get(a:, 1, { x -> x })
