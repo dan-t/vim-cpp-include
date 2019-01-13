@@ -83,7 +83,7 @@ function! fn#max(iterable, ...)
 endfunction
 
 " the minimum value of the items in 'iterable', optional
-" function for mapping the item before comparision
+" function for comparing two items
 "
 " Examples:
 " ---------
