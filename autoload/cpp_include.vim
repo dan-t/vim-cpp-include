@@ -1,5 +1,13 @@
 let s:has_windows_os = has('win32') || has('win64')
 
+let s:settings = [
+   \ 'cpp_include_log',
+   \ 'cpp_include_log_file',
+   \ 'cpp_include_kinds_order',
+   \ 'cpp_include_header_extensions',
+   \ 'cpp_include_locations',
+   \ 'cpp_include_default_surround' ]
+
 function! cpp_include#include(symbol)
    if !s:has_valid_settings()
       return
@@ -142,6 +150,37 @@ function! cpp_include#init_settings()
    call s:log('cpp_include_default_surround=%s', g:cpp_include_default_surround)
 endfunction
 
+function! cpp_include#test()
+   call test#start()
+   call cpp_include#init_settings()
+   call s:save_settings()
+
+   for has_win_os in [0, 1]
+      let s:has_windows_os = has_win_os
+      call s:test_split_path()
+      call s:test_is_absolute()
+      call s:test_ensure_ends_with_seperator()
+      call s:test_file_kind_and_dir()
+   endfor
+
+   call s:restore_settings()
+   call test#finish()
+endfunction
+
+function! s:save_settings()
+   let s:saved_settings = {}
+   for s in s:settings
+      exe printf("let s:saved_settings['%s'] = g:%s", s, s)
+   endfor
+endfunction
+
+function! s:restore_settings()
+   for s in s:settings
+      exe printf("let g:%s = s:saved_settings['%s']", s, s)
+   endfor
+   let s:saved_settings = {}
+endfunction
+
 function! s:taglist(regex)
    " consider case when matching tags
    let old_tagcase = &tagcase
@@ -168,8 +207,8 @@ function! s:split_by_kind(tags)
    return tags_by_kind
 endfunction
 
-function! s:file_kind_and_dir(filename)
-   let is_abs = s:is_absolute(a:filename)
+function! s:file_kind_and_dir(path)
+   let is_abs = s:is_absolute(a:path)
    for [kind, data] in items(g:cpp_include_locations)
       if !has_key(data, 'dirs')
          continue
@@ -177,19 +216,25 @@ function! s:file_kind_and_dir(filename)
 
       for dir in data.dirs
          let dir = s:ensure_ends_with_seperator(dir)
-         let has_file = is_abs ? a:filename =~# dir : filereadable(dir . a:filename)
+         let has_file = is_abs ? a:path =~# dir : filereadable(dir . a:path)
          if has_file
             return [kind, dir]
          endif
       endfor
    endfor
 
-   call s:log('no kind found for: %s', a:filename)
+   call s:log('no kind found for: %s', a:path)
    return ['undefined', '']
 endfunction
 
-function! s:is_cpp_header_file(filename)
-   let fileext = tolower(fnamemodify(a:filename, ':e'))
+function! s:test_file_kind_and_dir()
+
+
+
+endfunction
+
+function! s:is_cpp_header_file(path)
+   let fileext = tolower(fnamemodify(a:path, ':e'))
    for ext in g:cpp_include_header_extensions
       if tolower(ext) == tolower(fileext)
          return 1
@@ -313,15 +358,14 @@ function! s:include_surround(kind)
    return surround
 endfunction
 
-function! s:parse_include(line)
-   let include_str = getline(a:line)
-   let matches = matchlist(include_str, '\v^#include[ \t]*([<"]*)([^>"]+)([>"]*)$')
+function! s:parse_include(line, line_str)
+   let matches = matchlist(a:line_str, '\v^#include[ \t]*([<"]*)([^>"]+)([>"]*)$')
    if empty(matches)
       return {}
    endif
 
    let path = matches[2]
-   let inc = { 'path': path, 'kind': s:file_kind_and_dir(path)[0], 'string': include_str, 'line': a:line }
+   let inc = { 'path': path, 'kind': s:file_kind_and_dir(path)[0], 'string': a:line_str, 'line': a:line }
 
    call s:log('parsed include: %s', inc)
 
@@ -363,7 +407,7 @@ function! s:find_all_includes()
       return []
    endif
 
-   call map(lines, { idx, line -> s:parse_include(line) })
+   call map(lines, { idx, line -> s:parse_include(line, getline(line)) })
    return lines
 endfunction
 
@@ -437,7 +481,7 @@ function! s:seperator(path)
       return '\'
    endif
 
-   return os_seperator()
+   return s:os_seperator()
 endfunction
 
 function! s:os_seperator()
@@ -453,12 +497,44 @@ function! s:ensure_ends_with_seperator(path)
    return a:path
 endfunction
 
+function! s:test_ensure_ends_with_seperator()
+   if s:has_windows_os
+      call assert_equal('foo/', s:ensure_ends_with_seperator('foo/'))
+      call assert_equal('foo\', s:ensure_ends_with_seperator('foo'))
+      call assert_equal('bar/foo/', s:ensure_ends_with_seperator('bar/foo'))
+      call assert_equal('bar\foo\', s:ensure_ends_with_seperator('bar\foo'))
+      call assert_equal('C:\bar\foo\', s:ensure_ends_with_seperator('C:\bar\foo'))
+      call assert_equal('C:\bar\foo\', s:ensure_ends_with_seperator('C:\bar\foo\'))
+   else
+      call assert_equal('foo/', s:ensure_ends_with_seperator('foo/'))
+      call assert_equal('foo/', s:ensure_ends_with_seperator('foo'))
+      call assert_equal('bar/foo/', s:ensure_ends_with_seperator('bar/foo'))
+      call assert_equal('/bar/foo/', s:ensure_ends_with_seperator('/bar/foo'))
+      call assert_equal('/bar/foo/', s:ensure_ends_with_seperator('/bar/foo/'))
+   endif
+endfunction
+
 function! s:is_absolute(path)
    if s:has_windows_os
       return a:path =~ '\v^[A-Za-z]:'
    endif
 
    return a:path =~ '^/'
+endfunction
+
+function! s:test_is_absolute()
+   if s:has_windows_os
+      call assert_equal(0, s:is_absolute('foo/bar'))
+      call assert_equal(0, s:is_absolute('foo'))
+      call assert_equal(1, s:is_absolute('C:/foo'))
+      call assert_equal(1, s:is_absolute('C:\foo'))
+      call assert_equal(1, s:is_absolute('C:'))
+   else
+      call assert_equal(0, s:is_absolute('foo/bar'))
+      call assert_equal(0, s:is_absolute('foo'))
+      call assert_equal(1, s:is_absolute('/foo'))
+      call assert_equal(1, s:is_absolute('/'))
+   endif
 endfunction
 
 " copied from http://peterodding.com/code/vim/profile/autoload/xolox/path.vim
@@ -477,4 +553,27 @@ function! s:split_path(path)
       endif
    endif
    return []
+endfunction
+
+function! s:test_split_path()
+   if s:has_windows_os
+      call assert_equal(['foo', 'bar', 'goo'], s:split_path('foo\bar\goo'))
+      call assert_equal(['foo'], s:split_path('foo'))
+      call assert_equal(['C:', 'foo', 'bar', 'goo'], s:split_path('C:\foo\bar\goo'))
+      call assert_equal(['C:', 'foo', 'bar', 'goo'], s:split_path('C:/foo/bar/goo'))
+      call assert_equal(['C:', 'foo'], s:split_path('C:\foo'))
+      call assert_equal(['C:', 'foo'], s:split_path('C:\foo\'))
+      call assert_equal(['C:', 'foo'], s:split_path('C:\\foo\\'))
+      call assert_equal(['C:'], s:split_path('C:\'))
+      call assert_equal(['C:'], s:split_path('C:'))
+   else
+      call assert_equal(['foo', 'bar', 'goo'], s:split_path('foo/bar/goo'))
+      call assert_equal(['foo'], s:split_path('foo'))
+      call assert_equal(['/', 'foo', 'bar', 'goo'], s:split_path('/foo/bar/goo'))
+      call assert_equal(['/', 'foo'], s:split_path('/foo'))
+      call assert_equal(['/', 'foo'], s:split_path('/foo/'))
+      call assert_equal(['/', 'foo'], s:split_path('//foo//'))
+      call assert_equal(['/'], s:split_path('/'))
+      call assert_equal(['/'], s:split_path('//'))
+   endif
 endfunction
