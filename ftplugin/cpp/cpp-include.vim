@@ -13,9 +13,11 @@ else
 endif
 
 command! -nargs=1 -complete=tag CppInclude call cpp_include#include(<f-args>)
+command! -nargs=0 CppIncludeSort call cpp_include#sort()
 
 let b:undo_ftplugin .= join(map([
    \ 'CppInclude',
+   \ 'CppIncludeSort',
    \ ], '"delcommand " . v:val'), ' | ')
 
 let b:undo_ftplugin .= ' | unlet b:did_ftplugin_cpp_include'

@@ -121,6 +121,35 @@ function! fn#min(iterable, ...)
    return fn#fold(a:iterable, { x, y -> Fn(x, y) ? x : y })
 endfunction
 
+" compare function compatible with vim's interal 'sort' function
+function! fn#compare(x, y)
+   if a:x > a:y
+      return 1
+   elseif a:y > a:x
+      return -1
+   endif
+
+   return 0
+endfunction
+
+" compare function compatible with vim's interal 'sort' function
+function! fn#compare_list(xs, ys)
+   let x_len = len(a:xs)
+   let y_len = len(a:ys)
+   if x_len != y_len
+      throw printf("fn#compare_list: xs='%s' and ys='%s' are of different size", xs, ys)
+   endif
+
+   for i in range(x_len)
+      let cmp = fn#compare(a:xs[i], a:ys[i])
+      if cmp != 0
+         return cmp
+      endif
+   endfor
+
+   return 0
+endfunction
+
 function! fn#test()
    call test#start()
 
@@ -146,6 +175,22 @@ function! fn#test()
    call assert_equal(1, fn#min([1, 2, 3], { x, y -> x < y }))
    call assert_equal(['b', 1], fn#min({'a': 2, 'b': 1}, { x, y -> x[1] < y[1] }))
    call assert_equal(['a', 2], fn#min({'a': 2, 'b': 1}, { x, y -> x[0] < x[0] }))
+
+   call assert_equal(1, fn#compare(2, 1))
+   call assert_equal(0, fn#compare(2, 2))
+   call assert_equal(-1, fn#compare(1, 2))
+
+   call assert_equal(1, fn#compare_list([2, 'a'], [1, 'a']))
+   call assert_equal(1, fn#compare_list([2, 'a'], [1, 'a']))
+   call assert_equal(0, fn#compare_list([2, 'a'], [2, 'a']))
+   call assert_equal(1, fn#compare_list([2, 'b'], [2, 'a']))
+   call assert_equal(-1, fn#compare_list([1, 'b'], [2, 'a']))
+   call assert_equal(-1, fn#compare_list([1, 'a'], [1, 'b']))
+
+   call assert_equal([1, 2, 3], sort([2, 1, 3], { x, y -> fn#compare(x, y) }))
+   call assert_equal([1, 2, 3], sort([2, 1, 3], function('fn#compare')))
+   call assert_equal([[1, 'b'], [2, 'a']], sort([[2, 'a'], [1, 'b']], { x, y -> fn#compare_list(x, y) }))
+   call assert_equal([[1, 'b'], [2, 'a']], sort([[2, 'a'], [1, 'b']],  function('fn#compare_list')))
 
    call test#finish()
 endfunction

@@ -84,6 +84,30 @@ function! cpp_include#include(symbol)
    call cursor(curpos[1], curpos[2])
 endfunction
 
+function! cpp_include#sort()
+   " save current cursor position
+   let curpos = getcurpos()
+
+   " consider case for string comparision
+   let old_ignorecase = &ignorecase
+   set noignorecase
+
+   let includes = s:find_all_includes()
+   if !empty(includes)
+      let lines = fn#map(includes, { i -> i.line })
+      call sort(includes, function('s:compare_include'))
+      for i in range(min([len(lines), len(includes)]))
+         call setline(lines[i], includes[i].string)
+      endfor
+   endif
+
+   " resetting ignorecase
+   let &ignorecase = old_ignorecase
+
+   " reset cursor position
+   call cursor(curpos[1], curpos[2])
+endfunction
+
 function! cpp_include#print_error(...)
    echohl ErrorMsg
    let msg = call('printf', a:000)
@@ -241,6 +265,17 @@ endfunction
 function! s:test_file_kind_and_dir()
 endfunction
 
+function! s:order(kind)
+   if has_key(g:cpp_include_locations, a:kind)
+      let loc = g:cpp_include_locations[a:kind]
+      if has_key(loc, 'order')
+         return loc['order']
+      endif
+   endif
+
+   return 0
+endfunction
+
 function! s:is_cpp_header_file(path)
    let fileext = tolower(fnamemodify(a:path, ':e'))
    for ext in g:cpp_include_header_extensions
@@ -288,7 +323,7 @@ function! s:select_tag(tags)
    let max_filename_len = fn#max(fn#map(filtered_tags, { tag -> len(tag.filename) }))
 
    " sort filtered_tags by filename
-   let filtered_tags = sort(filtered_tags, { x, y -> x.filename > y.filename })
+   call sort(filtered_tags, { x, y -> fn#compare(x.filename, y.filename) })
 
    let num_decs = len(printf('%d', len(filtered_tags)))
    let inputList = ['Select file to include:']
@@ -380,6 +415,16 @@ function! s:parse_include(line, line_str)
    call s:log('parsed include: %s', inc)
 
    return inc
+endfunction
+
+" compare function compatible with vim's interal 'sort' function
+function! s:compare_include(include1, include2)
+   let cmp = fn#compare(s:order(a:include1.kind), s:order(a:include2.kind))
+   if cmp != 0
+      return cmp
+   endif
+
+   return fn#compare(a:include1.path, a:include2.path)
 endfunction
 
 function! s:find_tag_include(tag, includes)
