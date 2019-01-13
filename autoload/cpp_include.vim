@@ -1,6 +1,6 @@
 let s:has_windows_os = has('win32') || has('win64')
 
-function cpp_include#include(symbol)
+function! cpp_include#include(symbol)
    if !s:has_valid_settings()
       return
    endif
@@ -76,19 +76,19 @@ function cpp_include#include(symbol)
    call cursor(curpos[1], curpos[2])
 endfunction
 
-function cpp_include#print_error(...)
+function! cpp_include#print_error(...)
    echohl ErrorMsg
    let msg = call('printf', a:000)
    echomsg printf('cpp-include: %s', msg)
    echohl None
 endfunction
 
-function cpp_include#print_info(...)
+function! cpp_include#print_info(...)
    let msg = call('printf', a:000)
    echo printf('cpp-include: %s', msg)
 endfunction
 
-function cpp_include#input(...)
+function! cpp_include#input(...)
    echohl Question
    let msg = printf('cpp-include: %s', call('printf', a:000))
    let data = input(msg)
@@ -96,14 +96,14 @@ function cpp_include#input(...)
    return data
 endfunction
 
-function cpp_include#wait_for_enter(...)
+function! cpp_include#wait_for_enter(...)
    echohl Question
    let msg = printf('cpp-include: %s   Press ENTER to continue ...', call('printf', a:000))
    call input(msg)
    echohl None
 endfunction
 
-function cpp_include#init_settings()
+function! cpp_include#init_settings()
    if !exists('g:cpp_include_log')
       let g:cpp_include_log = 0
    elseif !exists('g:cpp_include_log_file')
@@ -142,7 +142,7 @@ function cpp_include#init_settings()
    call s:log('cpp_include_default_surround=%s', g:cpp_include_default_surround)
 endfunction
 
-function s:taglist(regex)
+function! s:taglist(regex)
    " consider case when matching tags
    let old_tagcase = &tagcase
    set tagcase=match
@@ -156,7 +156,7 @@ function s:taglist(regex)
 endfunction
 
 " split tags by ctags kind"
-function s:split_by_kind(tags)
+function! s:split_by_kind(tags)
    let tags_by_kind = {}
    for tag in a:tags
       if has_key(tags_by_kind, tag.kind)
@@ -168,7 +168,7 @@ function s:split_by_kind(tags)
    return tags_by_kind
 endfunction
 
-function s:file_kind_and_dir(filename)
+function! s:file_kind_and_dir(filename)
    let is_abs = s:is_absolute(a:filename)
    for [kind, data] in items(g:cpp_include_locations)
       if !has_key(data, 'dirs')
@@ -188,7 +188,7 @@ function s:file_kind_and_dir(filename)
    return ['undefined', '']
 endfunction
 
-function s:is_cpp_header_file(filename)
+function! s:is_cpp_header_file(filename)
    let fileext = tolower(fnamemodify(a:filename, ':e'))
    for ext in g:cpp_include_header_extensions
       if tolower(ext) == tolower(fileext)
@@ -199,7 +199,7 @@ function s:is_cpp_header_file(filename)
    return 0
 endfunction
 
-function s:select_tag(tags)
+function! s:select_tag(tags)
    if empty(a:tags)
       return {}
    endif
@@ -267,7 +267,7 @@ function s:select_tag(tags)
    return tag
 endfunction
 
-function s:select_line()
+function! s:select_line()
    let num_lines = line('$')
    if num_lines < 1
       return 0
@@ -289,7 +289,7 @@ function s:select_line()
    return line < 1 || line > num_lines ? 0 : line
 endfunction
 
-function s:format_include(tag)
+function! s:format_include(tag)
    let surround = s:include_surround(a:tag.file_kind)
    if surround == '"'
       return printf('#include "%s"', a:tag.filename)
@@ -300,7 +300,7 @@ function s:format_include(tag)
    throw printf("unexpected include surround='%s'", surround)
 endfunction
 
-function s:include_surround(kind)
+function! s:include_surround(kind)
    let surround = g:cpp_include_default_surround
    if has_key(g:cpp_include_locations, a:kind)
       let loc = g:cpp_include_locations[a:kind]
@@ -313,7 +313,7 @@ function s:include_surround(kind)
    return surround
 endfunction
 
-function s:parse_include(line)
+function! s:parse_include(line)
    let include_str = getline(a:line)
    let matches = matchlist(include_str, '\v^#include[ \t]*([<"]*)([^>"]+)([>"]*)$')
    if empty(matches)
@@ -328,7 +328,7 @@ function s:parse_include(line)
    return inc
 endfunction
 
-function s:find_tag_include(tag, includes)
+function! s:find_tag_include(tag, includes)
    for inc in a:includes
       if a:tag.filename == inc.path
          return inc
@@ -339,7 +339,7 @@ function s:find_tag_include(tag, includes)
 endfunction
 
 " returns a list of all includes
-function s:find_all_includes()
+function! s:find_all_includes()
    call cursor(1, 1)
    let lines = []
    while 1
@@ -370,7 +370,7 @@ endfunction
 " return the include with the best match with 'tag', where they have the same
 " kind ('user', 'sys') and most path components from the beginning are the
 " same, or {} in the case of no match
-function s:best_match(tag, includes)
+function! s:best_match(tag, includes)
    if empty(a:includes)
       return {}
    endif
@@ -411,7 +411,7 @@ function s:best_match(tag, includes)
    return empty(best_inc) ? a:includes[-1] : best_inc
 endfunction
 
-function s:log(...)
+function! s:log(...)
    if g:cpp_include_log
       let msg = call('printf', a:000)
       let list = type(msg) == type([]) ? msg : [msg]
@@ -419,7 +419,7 @@ function s:log(...)
    endif
 endfunction
 
-function s:has_valid_settings()
+function! s:has_valid_settings()
    if !exists('g:cpp_include_header_extensions') || empty(g:cpp_include_header_extensions)
       call cpp_include#print_error("missing header extensions in variable 'g:cpp_include_header_extensions'")
       return 0
@@ -430,7 +430,7 @@ endfunction
 
 " return the used path seperator in 'path', '/' or '\',
 " if none is found return platform specific seperator
-function s:seperator(path)
+function! s:seperator(path)
    if a:path =~ '/'
       return '/'
    elseif a:path =~ '\'
@@ -440,11 +440,11 @@ function s:seperator(path)
    return os_seperator()
 endfunction
 
-function s:os_seperator()
+function! s:os_seperator()
    return s:has_windows_os ? '\' : '/'
 endfunction
 
-function s:ensure_ends_with_seperator(path)
+function! s:ensure_ends_with_seperator(path)
    if a:path !~ '\v[\\/]+$'
       let sep = s:seperator(a:path)
       return a:path . sep
@@ -453,7 +453,7 @@ function s:ensure_ends_with_seperator(path)
    return a:path
 endfunction
 
-function s:is_absolute(path)
+function! s:is_absolute(path)
    if s:has_windows_os
       return a:path =~ '\v^[A-Za-z]:'
    endif
@@ -466,7 +466,7 @@ endfunction
 "    s:split_path('/foo/bar/goo')   -> ['/', 'foo', 'bar', 'goo']
 "    s:split_path('foo/bar/goo')    -> ['foo', 'bar', 'goo']
 "    s:split_path('C:\foo\bar\goo') -> ['C:' 'foo', 'bar', 'goo']
-function s:split_path(path)
+function! s:split_path(path)
    if type(a:path) == type('')
       if s:has_windows_os
          return split(a:path, '\v[\\/]+')
