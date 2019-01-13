@@ -209,18 +209,29 @@ endfunction
 
 function! s:file_kind_and_dir(path)
    let is_abs = s:is_absolute(a:path)
+   let cur_file_dir = s:ensure_ends_with_seperator(expand('%:p:h'))
    for [kind, data] in items(g:cpp_include_locations)
-      if !has_key(data, 'dirs')
-         continue
-      endif
+      if has_key(data, 'dirs')
+         for dir in data.dirs
+            let dir = s:ensure_ends_with_seperator(dir)
+            let has_file = 0
+            if is_abs
+               let has_file = a:path =~# dir
+            elseif filereadable(dir . a:path)
+               let has_file = 1
+            elseif cur_file_dir =~# dir
+               let has_file = filereadable(cur_file_dir . a:path)
+            endif
 
-      for dir in data.dirs
-         let dir = s:ensure_ends_with_seperator(dir)
-         let has_file = is_abs ? a:path =~# dir : filereadable(dir . a:path)
-         if has_file
-            return [kind, dir]
+            if has_file
+               return [kind, dir]
+            endif
+         endfor
+      elseif has_key(data, 'regex')
+         if a:path =~# data.regex
+            return [kind, '']
          endif
-      endfor
+      endif
    endfor
 
    call s:log('no kind found for: %s', a:path)
@@ -228,9 +239,6 @@ function! s:file_kind_and_dir(path)
 endfunction
 
 function! s:test_file_kind_and_dir()
-
-
-
 endfunction
 
 function! s:is_cpp_header_file(path)
@@ -340,6 +348,8 @@ function! s:format_include(tag)
       return printf('#include "%s"', a:tag.filename)
    elseif surround == '<' || surround == '>'
       return printf('#include <%s>', a:tag.filename)
+   elseif surround == ''
+      return printf('#include %s', a:tag.filename)
    endif
 
    throw printf("unexpected include surround='%s'", surround)
