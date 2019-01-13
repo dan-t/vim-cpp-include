@@ -101,7 +101,7 @@ function! fn#min(iterable, ...)
 endfunction
 
 function! fn#test()
-   call test#clear_errors()
+   call test#start()
 
    call assert_equal(6, fn#fold([1, 2, 3], { i, acc -> i + acc }))
    call assert_equal('abc', fn#fold(['a', 'b', 'c'], { i, acc -> acc . i }))
@@ -126,7 +126,7 @@ function! fn#test()
    call assert_equal(['b', 1], fn#min({'a': 2, 'b': 1}, { x, y -> x[1] < y[1] }))
    call assert_equal(['a', 2], fn#min({'a': 2, 'b': 1}, { x, y -> x[0] < x[0] }))
 
-   call test#check_errors()
+   call test#finish()
 endfunction
 
 function! s:map_list(list, fn)

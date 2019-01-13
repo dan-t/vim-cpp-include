@@ -1,8 +1,8 @@
-function test#clear_errors()
+function test#start()
    let v:errors = []
 endfunction
 
-function test#check_errors()
+function test#finish()
    if !empty(v:errors)
       let msg = ''
       echohl ErrorMsg
