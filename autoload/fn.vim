@@ -48,6 +48,24 @@ function! fn#map(iterable, fn)
    throw printf("fn#map: unexpected type of 'iterable': '%s'", type(a:iterable))
 endfunction
 
+" returns the first item in 'iterable' where 'fn' returns 1,
+"
+" Examples:
+" ---------
+"   fn#find([], { x -> x == 0 })
+"   => [0, 0]
+"
+"   fn#find([0], { x -> x == 0 })
+"   => [1, 0]
+"
+"   fn#find([0, 1], { x -> x == 1 })
+"   => [1, 1]
+"
+"   fn#find({'a': 1, 'b': 2}, { kv -> kv[0] == 'a' })
+"   => [1, ['a', 1]]
+"
+"   fn#find({'a': 1, 'b': 2}, { kv -> kv[1] == 2 })
+"   => [1, ['b', 2]]
 function! fn#find(iterable, fn)
    let found = [0, 0]
    let list = type(a:iterable) == type([]) ? a:iterable : items(a:iterable)
