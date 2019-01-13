@@ -361,7 +361,7 @@ function! s:select_line()
       return 0
    endif
 
-   normal gg
+   normal! gg
    let old_number = &number
    set number
    redraw
