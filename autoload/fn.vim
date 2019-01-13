@@ -101,7 +101,7 @@ function! fn#min(iterable, ...)
 endfunction
 
 function! fn#test()
-   let v:errors = []
+   call test#clear_errors()
 
    call assert_equal(6, fn#fold([1, 2, 3], { i, acc -> i + acc }))
    call assert_equal('abc', fn#fold(['a', 'b', 'c'], { i, acc -> acc . i }))
@@ -126,14 +126,7 @@ function! fn#test()
    call assert_equal(['b', 1], fn#min({'a': 2, 'b': 1}, { x, y -> x[1] < y[1] }))
    call assert_equal(['a', 2], fn#min({'a': 2, 'b': 1}, { x, y -> x[0] < x[0] }))
 
-   if !empty(v:errors)
-      let msg = ''
-      echohl ErrorMsg
-      for e in v:errors
-         echomsg printf('%s', e)
-      endfor
-      echohl None
-   endif
+   call test#check_errors()
 endfunction
 
 function! s:map_list(list, fn)
