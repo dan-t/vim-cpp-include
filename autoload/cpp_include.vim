@@ -5,7 +5,7 @@ let s:settings = [
    \ 'cpp_include_log_file',
    \ 'cpp_include_kinds_order',
    \ 'cpp_include_header_extensions',
-   \ 'cpp_include_locations',
+   \ 'cpp_include_origins',
    \ 'cpp_include_default_surround' ]
 
 function! cpp_include#include(symbol)
@@ -16,8 +16,8 @@ function! cpp_include#include(symbol)
    let tags = s:taglist('^' . a:symbol . '$')
    call filter(tags, { i, t -> s:is_cpp_header_file(t.filename) })
    for tag in tags
-      let [kind, dir] = s:file_kind_and_dir(tag.filename)
-      let tag.file_kind = kind
+      let [origin, dir] = s:file_origin_and_dir(tag.filename)
+      let tag.file_origin = origin
       let tag.filename = substitute(tag.filename, dir, '', '')
    endfor
 
@@ -161,11 +161,11 @@ function! cpp_include#init_settings()
 
    call s:log('cpp_include_header_extensions=%s', g:cpp_include_header_extensions)
 
-   if !exists('g:cpp_include_locations')
-      let g:cpp_include_locations = {}
+   if !exists('g:cpp_include_origins')
+      let g:cpp_include_origins = {}
    endif
 
-   call s:log('cpp_include_locations=%s', g:cpp_include_locations)
+   call s:log('cpp_include_origins=%s', g:cpp_include_origins)
 
    if !exists('g:cpp_include_default_surround')
       let g:cpp_include_default_surround = '"'
@@ -184,7 +184,7 @@ function! cpp_include#test()
       call s:test_split_path()
       call s:test_is_absolute()
       call s:test_ensure_ends_with_seperator()
-      call s:test_file_kind_and_dir()
+      call s:test_file_origin_and_dir()
    endfor
 
    call s:restore_settings()
@@ -231,10 +231,10 @@ function! s:split_by_kind(tags)
    return tags_by_kind
 endfunction
 
-function! s:file_kind_and_dir(path)
+function! s:file_origin_and_dir(path)
    let is_abs = s:is_absolute(a:path)
    let cur_file_dir = s:ensure_ends_with_seperator(expand('%:p:h'))
-   for [kind, data] in items(g:cpp_include_locations)
+   for [origin, data] in items(g:cpp_include_origins)
       if has_key(data, 'dirs')
          for dir in data.dirs
             let dir = s:ensure_ends_with_seperator(dir)
@@ -248,26 +248,26 @@ function! s:file_kind_and_dir(path)
             endif
 
             if has_file
-               return [kind, dir]
+               return [origin, dir]
             endif
          endfor
       elseif has_key(data, 'regex')
          if a:path =~# data.regex
-            return [kind, '']
+            return [origin, '']
          endif
       endif
    endfor
 
-   call s:log('no kind found for: %s', a:path)
+   call s:log('no origin found for: %s', a:path)
    return ['undefined', '']
 endfunction
 
-function! s:test_file_kind_and_dir()
+function! s:test_file_origin_and_dir()
 endfunction
 
-function! s:order(kind)
-   if has_key(g:cpp_include_locations, a:kind)
-      let loc = g:cpp_include_locations[a:kind]
+function! s:order(origin)
+   if has_key(g:cpp_include_origins, a:origin)
+      let loc = g:cpp_include_origins[a:origin]
       if has_key(loc, 'order')
          return loc['order']
       endif
@@ -378,7 +378,7 @@ function! s:select_line()
 endfunction
 
 function! s:format_include(tag)
-   let surround = s:include_surround(a:tag.file_kind)
+   let surround = s:include_surround(a:tag.file_origin)
    if surround == '"'
       return printf('#include "%s"', a:tag.filename)
    elseif surround == '<' || surround == '>'
@@ -390,16 +390,16 @@ function! s:format_include(tag)
    throw printf("unexpected include surround='%s'", surround)
 endfunction
 
-function! s:include_surround(kind)
+function! s:include_surround(origin)
    let surround = g:cpp_include_default_surround
-   if has_key(g:cpp_include_locations, a:kind)
-      let loc = g:cpp_include_locations[a:kind]
+   if has_key(g:cpp_include_origins, a:origin)
+      let loc = g:cpp_include_origins[a:origin]
       if has_key(loc, 'surround')
          let surround = loc.surround
       endif
    endif
 
-   call s:log('kind=%s, surround=%s', a:kind, surround)
+   call s:log('origin=%s, surround=%s', a:origin, surround)
    return surround
 endfunction
 
@@ -410,7 +410,7 @@ function! s:parse_include(line, line_str)
    endif
 
    let path = matches[2]
-   let inc = { 'path': path, 'kind': s:file_kind_and_dir(path)[0], 'string': a:line_str, 'line': a:line }
+   let inc = { 'path': path, 'origin': s:file_origin_and_dir(path)[0], 'string': a:line_str, 'line': a:line }
 
    call s:log('parsed include: %s', inc)
 
@@ -419,7 +419,7 @@ endfunction
 
 " compare function compatible with vim's interal 'sort' function
 function! s:compare_include(include1, include2)
-   let cmp = fn#compare(s:order(a:include1.kind), s:order(a:include2.kind))
+   let cmp = fn#compare(s:order(a:include1.origin), s:order(a:include2.origin))
    if cmp != 0
       return cmp
    endif
@@ -467,19 +467,19 @@ function! s:find_all_includes()
 endfunction
 
 " return the include with the best match with 'tag', where they have the same
-" kind ('user', 'sys') and most path components from the beginning are the
+" origin and most path components from the beginning are the
 " same, or {} in the case of no match
 function! s:best_match(tag, includes)
    if empty(a:includes)
       return {}
    endif
 
-   let kind_incs = deepcopy(a:includes)
-   call filter(kind_incs, { idx, inc -> inc.kind == a:tag.file_kind })
+   let origin_incs = deepcopy(a:includes)
+   call filter(origin_incs, { idx, inc -> inc.origin == a:tag.file_origin })
 
-   " if no matching kind could be found, then
+   " if no matching origin could be found, then
    " just use the last include
-   if empty(kind_incs)
+   if empty(origin_incs)
       return a:includes[-1]
    endif
 
@@ -487,7 +487,7 @@ function! s:best_match(tag, includes)
 
    let best_inc = {}
    let best_num = 0
-   for inc in kind_incs
+   for inc in origin_incs
       let path_comps = s:split_path(inc.path)
       let min_num_comps = min([len(tag_comps), len(path_comps)])
       let num_matches = 0
