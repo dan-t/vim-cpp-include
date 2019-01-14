@@ -677,4 +677,4 @@ let s:settings = [
    \ 'cpp_include_default_surround' ]
 
 let s:include_regex = '\v^[ \t]*#[ \t]*include'
-let s:include_path_regex = s:include_regex . '[ \t]*([<"]*)([^>"]+)([>"]*)$'
+let s:include_path_regex = s:include_regex . '[ \t]*([<"]*)([^>"]+)([>"]*)[ \t]*$'
