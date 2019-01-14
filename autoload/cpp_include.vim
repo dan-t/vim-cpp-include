@@ -13,41 +13,21 @@ function! cpp_include#include(symbol)
       return
    endif
 
-   let tags = s:taglist('^' . a:symbol . '$')
-   call filter(tags, { i, t -> s:is_cpp_header_file(t.filename) })
-   for tag in tags
-      let [origin, dir] = s:file_origin_and_dir(tag.filename)
-      let tag.file_origin = origin
-      let tag.filename = substitute(tag.filename, dir, '', '')
-   endfor
-
-   if empty(tags)
-      call cpp_include#print_error("couldn't find any tags for '%s'", a:symbol)
+   let symid = s:symbol_id(a:symbol)
+   if empty(symid)
+      call cpp_include#print_error("couldn't find anything for '%s'", a:symbol)
       return
    endif
-
-   if g:cpp_include_log
-      for tag in tags
-         call s:log('found tag: %s', tag)
-      endfor
-   endif
-
-   let tag = s:select_tag(tags)
-   if empty(tag)
-      return
-   endif
-
-   call s:log('selected tag: %s', tag)
 
    " save current cursor position
    let curpos = getcurpos() 
 
    let includes = s:find_all_includes()
-   let tag_inc = s:find_tag_include(tag, includes)
-   if !empty(tag_inc)
-      call cpp_include#print_info("already present '%s' at line %d", tag_inc.string, tag_inc.line)
+   let symid_inc = s:find_include(symid, includes)
+   if !empty(symid_inc)
+      call cpp_include#print_info("already present '%s' at line %d", symid_inc.string, symid_inc.line)
    else
-      let best_inc = s:best_match(tag, includes)
+      let best_inc = s:best_match(symid, includes)
       let inc_line = 0
       if !empty(best_inc)
          call s:log('add include below: %s', best_inc.string)
@@ -57,7 +37,7 @@ function! cpp_include#include(symbol)
       endif
 
       if inc_line != 0
-         let tag_inc_str = s:format_include(tag)
+         let tag_inc_str = s:format_include(symid)
 
          let inc_line_str = getline(inc_line)
          call s:log("inc_line: %d '%s'", inc_line, inc_line_str)
@@ -167,6 +147,12 @@ function! cpp_include#init_settings()
 
    call s:log('cpp_include_origins=%s', g:cpp_include_origins)
 
+   if !exists('g:cpp_include_forced_origin')
+      let g:cpp_include_forced_origin = {}
+   endif
+
+   call s:log('cpp_include_forced_origin=%s', g:cpp_include_forced_origin)
+
    if !exists('g:cpp_include_default_surround')
       let g:cpp_include_default_surround = '"'
    endif
@@ -203,6 +189,44 @@ function! s:restore_settings()
       exe printf("let g:%s = s:saved_settings['%s']", s, s)
    endfor
    let s:saved_settings = {}
+endfunction
+
+function! s:symbol_id(symbol)
+   " check if there's a forced origin for 'symbol'
+   if has_key(g:cpp_include_forced_origin, a:symbol)
+      let symid = g:cpp_include_forced_origin[a:symbol]
+      call s:log("found forced origin for symbol='%s': %s", a:symbol, symid)
+      let symid['symbol'] = a:symbol
+      return symid
+   endif
+
+   " find a matching tag for 'symbol'
+   let tags = s:taglist('^' . a:symbol . '$')
+   call filter(tags, { i, t -> s:is_cpp_header_file(t.filename) })
+   for tag in tags
+      let [origin, dir] = s:file_origin_and_dir(tag.filename)
+      let tag.file_origin = origin
+      let tag.filename = substitute(tag.filename, dir, '', '')
+   endfor
+
+   if empty(tags)
+      call cpp_include#print_error("couldn't find any tags for '%s'", a:symbol)
+      return
+   endif
+
+   if g:cpp_include_log
+      for tag in tags
+         call s:log('found tag: %s', tag)
+      endfor
+   endif
+
+   let tag = s:select_tag(tags)
+   if empty(tag)
+      return {}
+   endif
+
+   call s:log('selected tag: %s', tag)
+   return { 'symbol': a:symbol, 'origin': tag.file_origin, 'path': tag.filename }
 endfunction
 
 function! s:taglist(regex)
@@ -377,14 +401,14 @@ function! s:select_line()
    return line < 1 || line > num_lines ? 0 : line
 endfunction
 
-function! s:format_include(tag)
-   let surround = s:include_surround(a:tag.file_origin)
+function! s:format_include(symbol_id)
+   let surround = s:include_surround(a:symbol_id.origin)
    if surround == '"'
-      return printf('#include "%s"', a:tag.filename)
+      return printf('#include "%s"', a:symbol_id.path)
    elseif surround == '<' || surround == '>'
-      return printf('#include <%s>', a:tag.filename)
+      return printf('#include <%s>', a:symbol_id.path)
    elseif surround == ''
-      return printf('#include %s', a:tag.filename)
+      return printf('#include %s', a:symbol_id.path)
    endif
 
    throw printf("unexpected include surround='%s'", surround)
@@ -427,9 +451,9 @@ function! s:compare_include(include1, include2)
    return fn#compare(a:include1.path, a:include2.path)
 endfunction
 
-function! s:find_tag_include(tag, includes)
+function! s:find_include(symbol_id, includes)
    for inc in a:includes
-      if a:tag.filename == inc.path
+      if a:symbol_id.path == inc.path
          return inc
       endif
    endfor
@@ -466,16 +490,16 @@ function! s:find_all_includes()
    return lines
 endfunction
 
-" return the include with the best match with 'tag', where they have the same
+" return the include with the best match with 'symbol_id', where they have the same
 " origin and most path components from the beginning are the
 " same, or {} in the case of no match
-function! s:best_match(tag, includes)
+function! s:best_match(symbol_id, includes)
    if empty(a:includes)
       return {}
    endif
 
    let origin_incs = deepcopy(a:includes)
-   call filter(origin_incs, { idx, inc -> inc.origin == a:tag.file_origin })
+   call filter(origin_incs, { idx, inc -> inc.origin == a:symbol_id.origin })
 
    " if no matching origin could be found, then
    " just use the last include
@@ -483,7 +507,7 @@ function! s:best_match(tag, includes)
       return a:includes[-1]
    endif
 
-   let tag_comps = s:split_path(a:tag.filename)
+   let tag_comps = s:split_path(a:symbol_id.path)
 
    let best_inc = {}
    let best_num = 0
