@@ -1,13 +1,3 @@
-let s:has_windows_os = has('win32') || has('win64')
-
-let s:settings = [
-   \ 'cpp_include_log',
-   \ 'cpp_include_log_file',
-   \ 'cpp_include_kinds_order',
-   \ 'cpp_include_header_extensions',
-   \ 'cpp_include_origins',
-   \ 'cpp_include_default_surround' ]
-
 function! cpp_include#include(symbol)
    if !s:has_valid_settings()
       return
@@ -28,35 +18,39 @@ function! cpp_include#include(symbol)
       call cpp_include#print_info("already present '%s' at line %d", symid_inc.string, symid_inc.line)
    else
       let best_inc = s:best_match(symid, includes)
-      let inc_line = 0
+      let inc_pos = {}
       if !empty(best_inc)
-         call s:log('add include below: %s', best_inc.string)
-         let inc_line = best_inc.line
+         call s:log('add include after: %s', best_inc.string)
+         let inc_pos = { 'line': best_inc.line, 'pos': 'after' }
       else
-         let inc_line = s:select_line()
+         let inc_pos = s:select_line()
       endif
 
-      if inc_line != 0
-         let tag_inc_str = s:format_include(symid)
+      if !empty(inc_pos)
+         let include_str = s:format_include(symid)
+         call s:log("symid='%s', include_str='%s'", symid, include_str)
 
-         let inc_line_str = getline(inc_line)
-         call s:log("inc_line: %d '%s'", inc_line, inc_line_str)
-
-         " if the include line only contains whitespace, then change the line,
-         " otherwise append the include string
-         if inc_line_str =~ '\v^[ \n\t]*$'
-            call setline(inc_line, tag_inc_str)
+         if inc_pos.pos == 'at'
+            call setline(inc_pos.line, include_str)
          else
-            call append(inc_line, tag_inc_str)
-            let inc_line += 1
+            if inc_pos.pos == 'before'
+               let cur_line_str = getline(inc_pos.line)
+               call setline(inc_pos.line, [include_str, cur_line_str])
+            elseif inc_pos.pos == 'after'
+               call append(inc_pos.line, include_str)
+            else
+               throw printf("unexpected include pos='%s'", inc_pos.pos)
+            endif
+
+            let inc_pos.line += 1
 
             " consider the added include for resetting the cursor position
-            if curpos[1] >= inc_line
+            if curpos[1] >= inc_pos.line
                let curpos[1] += 1
             endif
          endif
 
-         call cpp_include#print_info("added '%s' at line %d", tag_inc_str, inc_line)
+         call cpp_include#print_info("added '%s' at line %d", include_str, inc_pos.line)
       endif
    endif
 
@@ -398,7 +392,22 @@ function! s:select_line()
 
    redraw
 
-   return line < 1 || line > num_lines ? 0 : line
+   if line < 1 || line > num_lines
+      return {}
+   endif
+
+   let line_str = getline(line)
+   let pos = 'after'
+
+   " if the include line only contains whitespace, then change the line
+   if line_str =~ '\v^[ \n\t]*$'
+      let pos = 'at'
+   " if the first line is a non include line, then insert the line before
+   elseif line == 1 && line_str !~# s:include_regex
+      let pos = 'before'
+   endif
+
+   return { 'line': line, 'pos': pos }
 endfunction
 
 function! s:format_include(symbol_id)
@@ -428,7 +437,7 @@ function! s:include_surround(origin)
 endfunction
 
 function! s:parse_include(line, line_str)
-   let matches = matchlist(a:line_str, '\v^#include[ \t]*([<"]*)([^>"]+)([>"]*)$')
+   let matches = matchlist(a:line_str, s:include_path_regex)
    if empty(matches)
       return {}
    endif
@@ -466,7 +475,7 @@ function! s:find_all_includes()
    call cursor(1, 1)
    let lines = []
    while 1
-      let line = search('\v^[ \t]*#[ \t]*include', empty(lines) ? 'cW' : 'W')
+      let line = search(s:include_regex, empty(lines) ? 'cW' : 'W')
       if line == 0
          break
       endif
@@ -656,3 +665,16 @@ function! s:test_split_path()
       call assert_equal(['/'], s:split_path('//'))
    endif
 endfunction
+
+let s:has_windows_os = has('win32') || has('win64')
+
+let s:settings = [
+   \ 'cpp_include_log',
+   \ 'cpp_include_log_file',
+   \ 'cpp_include_kinds_order',
+   \ 'cpp_include_header_extensions',
+   \ 'cpp_include_origins',
+   \ 'cpp_include_default_surround' ]
+
+let s:include_regex = '\v^[ \t]*#[ \t]*include'
+let s:include_path_regex = s:include_regex . '[ \t]*([<"]*)([^>"]+)([>"]*)$'
