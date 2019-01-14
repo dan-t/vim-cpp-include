@@ -147,11 +147,11 @@ function! cpp_include#init_settings()
 
    call s:log('cpp_include_origins=%s', g:cpp_include_origins)
 
-   if !exists('g:cpp_include_forced_origin')
-      let g:cpp_include_forced_origin = {}
+   if !exists('g:cpp_include_forced_headers')
+      let g:cpp_include_forced_headers = {}
    endif
 
-   call s:log('cpp_include_forced_origin=%s', g:cpp_include_forced_origin)
+   call s:log('cpp_include_forced_headers=%s', g:cpp_include_forced_headers)
 
    if !exists('g:cpp_include_default_surround')
       let g:cpp_include_default_surround = '"'
@@ -193,8 +193,8 @@ endfunction
 
 function! s:symbol_id(symbol)
    " check if there's a forced origin for 'symbol'
-   if has_key(g:cpp_include_forced_origin, a:symbol)
-      let symid = g:cpp_include_forced_origin[a:symbol]
+   if has_key(g:cpp_include_forced_headers, a:symbol)
+      let symid = g:cpp_include_forced_headers[a:symbol]
       call s:log("found forced origin for symbol='%s': %s", a:symbol, symid)
       let symid['symbol'] = a:symbol
       return symid
