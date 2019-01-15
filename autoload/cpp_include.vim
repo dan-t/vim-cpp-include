@@ -3,14 +3,15 @@ function! cpp_include#include(symbol)
       return
    endif
 
+   call s:save_vim_settings()
+   call s:set_vim_settings()
+
    let symid = s:symbol_id(a:symbol)
    if empty(symid)
+      call s:restore_vim_settings()
       call cpp_include#print_error("couldn't find anything for '%s'", a:symbol)
       return
    endif
-
-   " save current cursor position
-   let curpos = getcurpos() 
 
    let includes = s:find_all_includes()
    let symid_inc = s:find_include(symid, includes)
@@ -45,8 +46,8 @@ function! cpp_include#include(symbol)
             let inc_pos.line += 1
 
             " consider the added include for resetting the cursor position
-            if curpos[1] >= inc_pos.line
-               let curpos[1] += 1
+            if s:saved_vim_settings.curpos[1] >= inc_pos.line
+               let s:saved_vim_settings.curpos[1] += 1
             endif
          endif
 
@@ -54,17 +55,12 @@ function! cpp_include#include(symbol)
       endif
    endif
 
-   " reset cursor position
-   call cursor(curpos[1], curpos[2])
+   call s:restore_vim_settings()
 endfunction
 
 function! cpp_include#sort()
-   " save current cursor position
-   let curpos = getcurpos()
-
-   " consider case for string comparision
-   let old_ignorecase = &ignorecase
-   set noignorecase
+   call s:save_vim_settings()
+   call s:set_vim_settings()
 
    let includes = s:find_all_includes()
    call filter(includes, { idx, inc -> inc.origin != 'undefined' })
@@ -76,11 +72,7 @@ function! cpp_include#sort()
       endfor
    endif
 
-   " resetting ignorecase
-   let &ignorecase = old_ignorecase
-
-   " reset cursor position
-   call cursor(curpos[1], curpos[2])
+   call s:restore_vim_settings()
 endfunction
 
 function! cpp_include#print_error(...)
@@ -172,6 +164,30 @@ function! cpp_include#test()
    call test#finish()
 endfunction
 
+function! s:save_vim_settings()
+   let s:saved_vim_settings.curpos = getcurpos()
+   let s:saved_vim_settings.ignorecase = &ignorecase
+   let s:saved_vim_settings.tagcase = &tagcase
+endfunction
+
+function! s:set_vim_settings()
+   set noignorecase
+   set tagcase=match
+endfunction
+
+function! s:restore_vim_settings()
+   for s in keys(s:saved_vim_settings)
+      if s == 'curpos'
+         let curpos = s:saved_vim_settings[s]
+         call cursor(curpos[1], curpos[2])
+      else
+         exe printf("let &%s = s:saved_vim_settings['%s']", s, s)
+      endif
+   endfor
+
+   let s:saved_vim_settings = {}
+endfunction
+
 function! s:save_settings()
    let s:saved_settings = {}
    for s in s:settings
@@ -196,7 +212,7 @@ function! s:symbol_id(symbol)
    endif
 
    " find a matching tag for 'symbol'
-   let tags = s:taglist('^' . a:symbol . '$')
+   let tags = taglist('^' . a:symbol . '$')
    call filter(tags, { i, t -> s:is_cpp_header_file(t.filename) })
    for tag in tags
       let [origin, dir] = s:file_origin_and_dir(tag.filename)
@@ -225,19 +241,6 @@ function! s:symbol_id(symbol)
    let symid = { 'symbol': a:symbol, 'origin': tag.file_origin, 'path': tag.filename }
    call s:log("symid='%s'", symid)
    return symid
-endfunction
-
-function! s:taglist(regex)
-   " consider case when matching tags
-   let old_tagcase = &tagcase
-   set tagcase=match
-
-   let tags = taglist(a:regex)
-
-   " resetting tagcase
-   let &tagcase = old_tagcase
-
-   return tags
 endfunction
 
 " split tags by ctags kind"
@@ -682,6 +685,8 @@ let s:settings = [
    \ 'cpp_include_header_extensions',
    \ 'cpp_include_origins',
    \ 'cpp_include_default_surround' ]
+
+let s:saved_vim_settings = {}
 
 let s:include_regex = '\v^[ \t]*#[ \t]*include'
 let s:include_path_regex = s:include_regex . '[ \t]*([<"]*)([^>"]+)([>"]*)'
