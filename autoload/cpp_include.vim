@@ -220,7 +220,10 @@ function! s:symbol_id(symbol)
    endif
 
    call s:log('selected tag: %s', tag)
-   return { 'symbol': a:symbol, 'origin': tag.file_origin, 'path': tag.filename }
+
+   let symid = { 'symbol': a:symbol, 'origin': tag.file_origin, 'path': tag.filename }
+   call s:log("symid='%s'", symid)
+   return symid
 endfunction
 
 function! s:taglist(regex)
@@ -439,6 +442,7 @@ endfunction
 function! s:parse_include(line, line_str)
    let matches = matchlist(a:line_str, s:include_path_regex)
    if empty(matches)
+      call s:log("parse_include: no match for line_str='%s'", a:line_str)
       return {}
    endif
 
@@ -461,7 +465,9 @@ function! s:compare_include(include1, include2)
 endfunction
 
 function! s:find_include(symbol_id, includes)
+   call s:log("find_include: symbol_id='%s'", a:symbol_id)
    for inc in a:includes
+      call s:log("find_include: inc='%s'", inc)
       if a:symbol_id.path == inc.path
          return inc
       endif
