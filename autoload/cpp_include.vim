@@ -27,29 +27,10 @@ function! cpp_include#include(symbol)
          let include_str = s:format_include(symid)
          call s:log("symid='%s', include_str='%s'", symid, include_str)
 
-         if inc_pos.pos == 'at'
-            call setline(inc_pos.line, include_str)
-         else
-            if inc_pos.pos == 'above'
-               if inc_pos.line == 1
-                  let cur_line_str = getline(inc_pos.line)
-                  call setline(inc_pos.line, [include_str, cur_line_str])
-               else
-                  call append(inc_pos.line - 1, include_str)
-               endif
-            elseif inc_pos.pos == 'below'
-               call append(inc_pos.line, include_str)
-            else
-               throw printf("unexpected include pos='%s'", inc_pos.pos)
-            endif
+         call s:add_include(inc_pos, include_str)
 
-            let inc_pos.line += 1
-
-            " consider the added include for resetting the cursor position
-            if s:saved_vim_settings.curpos[1] >= inc_pos.line
-               let s:saved_vim_settings.curpos[1] += 1
-            endif
-         endif
+         " consider the added include for resetting the cursor position
+         call s:update_saved_cursor_position(inc_pos)
 
          call cpp_include#print_info("added '%s' at line %d", include_str, inc_pos.line)
       endif
@@ -460,6 +441,38 @@ function! s:include_surround(origin)
 
    call s:log('origin=%s, surround=%s', a:origin, surround)
    return surround
+endfunction
+
+function! s:update_saved_cursor_position(include_pos)
+   if a:include_pos.pos != 'at'
+      let curline = s:saved_vim_settings.curpos[1]
+      if curline > a:include_pos.line
+         let curline += 1
+      elseif curline == a:include_pos.line && a:include_pos.pos == 'above'
+         let curline += 1
+      endif
+
+      let s:saved_vim_settings.curpos[1] = curline
+   endif
+endfunction
+
+function! s:add_include(include_pos, include_str)
+   if a:include_pos.pos == 'at'
+      call setline(a:include_pos.line, a:include_str)
+   else
+      if a:include_pos.pos == 'above'
+         if a:include_pos.line == 1
+            let cur_line_str = getline(a:include_pos.line)
+            call setline(a:include_pos.line, [a:include_str, cur_line_str])
+         else
+            call append(a:include_pos.line - 1, a:include_str)
+         endif
+      elseif a:include_pos.pos == 'below'
+         call append(a:include_pos.line, a:include_str)
+      else
+         throw printf("unexpected include pos='%s'", a:include_pos.pos)
+      endif
+   endif
 endfunction
 
 function! s:parse_include(line, line_str)
