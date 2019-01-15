@@ -20,8 +20,8 @@ function! cpp_include#include(symbol)
       let best_inc = s:best_match(symid, includes)
       let inc_pos = {}
       if !empty(best_inc)
-         call s:log('add include after: %s', best_inc.string)
-         let inc_pos = { 'line': best_inc.line, 'pos': 'after' }
+         call s:log('add include below: %s', best_inc.string)
+         let inc_pos = { 'line': best_inc.line, 'pos': 'below' }
       else
          let inc_pos = s:select_line()
       endif
@@ -33,10 +33,10 @@ function! cpp_include#include(symbol)
          if inc_pos.pos == 'at'
             call setline(inc_pos.line, include_str)
          else
-            if inc_pos.pos == 'before'
+            if inc_pos.pos == 'above'
                let cur_line_str = getline(inc_pos.line)
                call setline(inc_pos.line, [include_str, cur_line_str])
-            elseif inc_pos.pos == 'after'
+            elseif inc_pos.pos == 'below'
                call append(inc_pos.line, include_str)
             else
                throw printf("unexpected include pos='%s'", inc_pos.pos)
@@ -400,14 +400,14 @@ function! s:select_line()
    endif
 
    let line_str = getline(line)
-   let pos = 'after'
+   let pos = 'below'
 
    " if the include line only contains whitespace, then change the line
    if line_str =~ '\v^[ \n\t]*$'
       let pos = 'at'
-   " if the first line is a non include line, then insert the line before
+   " if the first line is a non include line, then insert the line above
    elseif line == 1 && line_str !~# s:include_regex
-      let pos = 'before'
+      let pos = 'above'
    endif
 
    return { 'line': line, 'pos': pos }
