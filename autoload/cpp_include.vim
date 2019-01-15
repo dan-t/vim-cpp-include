@@ -205,7 +205,7 @@ function! s:symbol_id(symbol)
 
    if empty(tags)
       call cpp_include#print_error("couldn't find any tags for '%s'", a:symbol)
-      return
+      return {}
    endif
 
    if g:cpp_include_log
