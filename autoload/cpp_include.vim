@@ -67,6 +67,7 @@ function! cpp_include#sort()
    set noignorecase
 
    let includes = s:find_all_includes()
+   call filter(includes, { idx, inc -> inc.origin != 'undefined' })
    if !empty(includes)
       let lines = fn#map(includes, { i -> i.line })
       call sort(includes, function('s:compare_include'))
