@@ -18,12 +18,8 @@ function! cpp_include#include(symbol)
    if !empty(symid_inc)
       call cpp_include#print_info("already present '%s' at line %d", symid_inc.string, symid_inc.line)
    else
-      let best_inc = s:best_match(symid, includes)
-      let inc_pos = {}
-      if !empty(best_inc)
-         call s:log('add include below: %s', best_inc.string)
-         let inc_pos = { 'line': best_inc.line, 'pos': 'below' }
-      else
+      let inc_pos = s:include_position(symid, includes)
+      if empty(inc_pos)
          let inc_pos = s:select_line()
       endif
 
@@ -35,8 +31,12 @@ function! cpp_include#include(symbol)
             call setline(inc_pos.line, include_str)
          else
             if inc_pos.pos == 'above'
-               let cur_line_str = getline(inc_pos.line)
-               call setline(inc_pos.line, [include_str, cur_line_str])
+               if inc_pos.line == 1
+                  let cur_line_str = getline(inc_pos.line)
+                  call setline(inc_pos.line, [include_str, cur_line_str])
+               else
+                  call append(inc_pos.line - 1, include_str)
+               endif
             elseif inc_pos.pos == 'below'
                call append(inc_pos.line, include_str)
             else
@@ -417,6 +417,25 @@ function! s:select_line()
    return { 'line': line, 'pos': pos }
 endfunction
 
+function! s:are_sorted(includes)
+   if empty(a:includes)
+      return 0
+   endif
+
+   let num_incs = len(a:includes)
+   if num_incs == 1
+      return 1
+   endif
+
+   for i in range(num_incs - 1)
+      if s:compare_include(a:includes[i], a:includes[i + 1]) >= 0
+         return 0
+      endif
+   endfor
+
+   return 1
+endfunction
+
 function! s:format_include(symbol_id)
    let surround = s:include_surround(a:symbol_id.origin)
    if surround == '"'
@@ -509,10 +528,7 @@ function! s:find_all_includes()
    return lines
 endfunction
 
-" return the include with the best match with 'symbol_id', where they have the same
-" origin and most path components from the beginning are the
-" same, or {} in the case of no match
-function! s:best_match(symbol_id, includes)
+function! s:include_position(symbol_id, includes)
    if empty(a:includes)
       return {}
    endif
@@ -523,8 +539,23 @@ function! s:best_match(symbol_id, includes)
    " if no matching origin could be found, then
    " just use the last include
    if empty(origin_incs)
-      return a:includes[-1]
+      return { 'line': a:includes[-1].line, 'pos': 'below' }
    endif
+
+   if s:are_sorted(origin_incs)
+      call s:log('origin includes are sorted')
+      for inc in origin_incs
+         if a:symbol_id.path < inc.path
+            return { 'line': inc.line, 'pos': 'above' }
+         endif
+      endfor
+
+      return { 'line': origin_incs[-1].line, 'pos': 'below' }
+   endif
+
+   " the includes aren't sorted, find the best matching
+   " one by comparing the compoments of the path and the
+   " take the include with the most matching ones
 
    let tag_comps = s:split_path(a:symbol_id.path)
 
@@ -549,8 +580,11 @@ function! s:best_match(symbol_id, includes)
       endif
    endfor
 
-   " in the case of no match return the last include
-   return empty(best_inc) ? a:includes[-1] : best_inc
+   if empty(best_inc)
+      return { 'line': a:includes[-1].line, 'pos': 'below' }
+   endif
+
+   return { 'line': best_inc.line, 'pos': 'below' }
 endfunction
 
 function! s:log(...)
