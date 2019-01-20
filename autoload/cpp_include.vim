@@ -270,8 +270,8 @@ function! s:file_origin_and_dir(path)
                return [origin, dir]
             endif
          endfor
-      elseif has_key(data, 'regex')
-         if a:path =~# data.regex
+      elseif has_key(data, 'path_regex')
+         if a:path =~# data.path_regex
             return [origin, '']
          endif
       endif
