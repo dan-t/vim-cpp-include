@@ -505,12 +505,16 @@ endfunction
 
 " compare function compatible with vim's interal 'sort' function
 function! s:compare_include(include1, include2)
-   let cmp = fn#compare(s:sort_order(a:include1.origin), s:sort_order(a:include2.origin))
+   return s:compare_origin_and_path(a:include1.origin, a:include1.path, a:include2.origin, a:include2.path)
+endfunction
+
+function! s:compare_origin_and_path(origin1, path1, origin2, path2)
+   let cmp = fn#compare(s:sort_order(a:origin1), s:sort_order(a:origin2))
    if cmp != 0
       return cmp
    endif
 
-   return fn#compare(a:include1.path, a:include2.path)
+   return fn#compare(a:path1, a:path2)
 endfunction
 
 function! s:find_include(symbol_id, includes)
@@ -559,29 +563,23 @@ function! s:include_position(symbol_id, includes)
       return s:include_position_fallback([])
    endif
 
-   let origin_incs = deepcopy(a:includes)
-   call filter(origin_incs, { idx, inc -> inc.origin == a:symbol_id.origin })
-
-   " if no matching origin could be found, then
-   " try the include position fallback
-   if empty(origin_incs)
-      return s:include_position_fallback(a:includes)
-   endif
-
-   if s:are_sorted(origin_incs)
-      call s:log('origin includes are sorted')
-      for inc in origin_incs
-         if a:symbol_id.path < inc.path
+   if s:are_sorted(a:includes)
+      call s:log('includes are sorted')
+      for inc in a:includes
+         if s:compare_origin_and_path(a:symbol_id.origin, a:symbol_id.path, inc.origin, inc.path) == -1
             return { 'line': inc.line, 'pos': 'above' }
          endif
       endfor
 
-      return { 'line': origin_incs[-1].line, 'pos': 'below' }
+      return { 'line': a:includes[-1].line, 'pos': 'below' }
    endif
 
    " the includes aren't sorted, find the best matching
    " one by comparing the compoments of the path and the
    " take the include with the most matching ones
+
+   let origin_incs = deepcopy(a:includes)
+   call filter(origin_incs, { idx, inc -> inc.origin == a:symbol_id.origin })
 
    let tag_comps = s:split_path(a:symbol_id.path)
 
