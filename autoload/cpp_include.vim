@@ -110,10 +110,17 @@ function! cpp_include#init_settings()
    call s:log('cpp_include_header_extensions=%s', g:cpp_include_header_extensions)
 
    if !exists('g:cpp_include_origins')
-      let g:cpp_include_origins = {}
+      let g:cpp_include_origins = []
    endif
 
    call s:log('cpp_include_origins=%s', g:cpp_include_origins)
+
+   let s:origin_to_data = {}
+   for [origin, data] in g:cpp_include_origins
+      let s:origin_to_data[origin] = data
+   endfor
+
+   call s:log('s:origin_to_data=%s', s:origin_to_data)
 
    if !exists('g:cpp_include_forced_headers')
       let g:cpp_include_forced_headers = {}
@@ -172,13 +179,13 @@ endfunction
 function! s:save_settings()
    let s:saved_settings = {}
    for s in s:settings
-      exe printf("let s:saved_settings['%s'] = g:%s", s, s)
+      exe printf("let s:saved_settings['%s'] = %s", s, s)
    endfor
 endfunction
 
 function! s:restore_settings()
    for s in s:settings
-      exe printf("let g:%s = s:saved_settings['%s']", s, s)
+      exe printf("let %s = s:saved_settings['%s']", s, s)
    endfor
    let s:saved_settings = {}
 endfunction
@@ -240,7 +247,7 @@ endfunction
 function! s:file_origin_and_dir(path)
    let is_abs = s:is_absolute(a:path)
    let cur_file_dir = s:ensure_ends_with_seperator(expand('%:p:h'))
-   for [origin, data] in items(g:cpp_include_origins)
+   for [origin, data] in g:cpp_include_origins
       if has_key(data, 'dirs')
          for dir in data.dirs
             let dir = s:ensure_ends_with_seperator(dir)
@@ -272,8 +279,8 @@ function! s:test_file_origin_and_dir()
 endfunction
 
 function! s:order(origin)
-   if has_key(g:cpp_include_origins, a:origin)
-      let loc = g:cpp_include_origins[a:origin]
+   if has_key(s:origin_to_data, a:origin)
+      let loc = s:origin_to_data[a:origin]
       if has_key(loc, 'order')
          return loc['order']
       endif
@@ -432,8 +439,8 @@ endfunction
 
 function! s:include_surround(origin)
    let surround = g:cpp_include_default_surround
-   if has_key(g:cpp_include_origins, a:origin)
-      let loc = g:cpp_include_origins[a:origin]
+   if has_key(s:origin_to_data, a:origin)
+      let loc = s:origin_to_data[a:origin]
       if has_key(loc, 'surround')
          let surround = loc.surround
       endif
@@ -726,12 +733,13 @@ endfunction
 let s:has_windows_os = has('win32') || has('win64')
 
 let s:settings = [
-   \ 'cpp_include_log',
-   \ 'cpp_include_log_file',
-   \ 'cpp_include_kinds_order',
-   \ 'cpp_include_header_extensions',
-   \ 'cpp_include_origins',
-   \ 'cpp_include_default_surround' ]
+   \ 'g:cpp_include_log',
+   \ 'g:cpp_include_log_file',
+   \ 'g:cpp_include_kinds_order',
+   \ 'g:cpp_include_header_extensions',
+   \ 'g:cpp_include_origins',
+   \ 'g:cpp_include_default_surround',
+   \ 's:origin_to_data' ]
 
 let s:saved_vim_settings = {}
 
