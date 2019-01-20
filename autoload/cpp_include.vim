@@ -44,7 +44,6 @@ function! cpp_include#sort()
    call s:set_vim_settings()
 
    let includes = s:find_all_includes()
-   call filter(includes, { idx, inc -> inc.origin != 'undefined' })
    if !empty(includes)
       let lines = fn#map(includes, { i -> i.line })
       call sort(includes, function('s:compare_include'))
@@ -292,7 +291,18 @@ function! s:sort_order(origin)
       endif
    endif
 
-   return 0
+   return s:max_sort_order() + 1
+endfunction
+
+function! s:max_sort_order()
+   let sort_order = 0
+   for [origin, data] in g:cpp_include_origins
+      if has_key(data, 'sort_order')
+         let sort_order = max([sort_order, data['sort_order']])
+      endif
+   endfor
+
+   return sort_order
 endfunction
 
 function! s:is_cpp_header_file(path)
