@@ -67,21 +67,6 @@ function! cpp_include#print_info(...)
    echo printf('cpp-include: %s', msg)
 endfunction
 
-function! cpp_include#input(...)
-   echohl Question
-   let msg = printf('cpp-include: %s', call('printf', a:000))
-   let data = input(msg)
-   echohl None
-   return data
-endfunction
-
-function! cpp_include#wait_for_enter(...)
-   echohl Question
-   let msg = printf('cpp-include: %s   Press ENTER to continue ...', call('printf', a:000))
-   call input(msg)
-   echohl None
-endfunction
-
 function! cpp_include#init_settings()
    if !exists('g:cpp_include_log')
       let g:cpp_include_log = 0
@@ -157,10 +142,26 @@ function! cpp_include#test()
    call test#finish()
 endfunction
 
+function! s:input(...)
+   echohl Question
+   let msg = printf('cpp-include: %s', call('printf', a:000))
+   let data = input(msg)
+   echohl None
+   return data
+endfunction
+
+function! s:wait_for_enter(...)
+   echohl Question
+   let msg = printf('cpp-include: %s   Press ENTER to continue ...', call('printf', a:000))
+   call input(msg)
+   echohl None
+endfunction
+
 function! s:save_vim_settings()
    let s:saved_vim_settings.curpos = getcurpos()
    let s:saved_vim_settings.ignorecase = &ignorecase
    let s:saved_vim_settings.tagcase = &tagcase
+   let s:saved_vim_settings.iskeyword = &iskeyword
 endfunction
 
 function! s:set_vim_settings()
@@ -395,7 +396,7 @@ function! s:select_line()
    set number
    redraw
 
-   let line = cpp_include#input('Select line for include (1-%s): ', num_lines)
+   let line = s:input('Select line for include (1-%s): ', num_lines)
    echo "\n"
 
    " resetting number
@@ -560,7 +561,7 @@ function! s:find_all_includes()
    call cursor(lines[0], 1)
    let ifdef_line = search('\v^[ \t]*#[ \t]*ifn?def', 'cW')
    if ifdef_line != 0 && ifdef_line < lines[-1]
-      call cpp_include#wait_for_enter('#ifdef inbetween #include at line %d detected, switch to manual mode', ifdef_line)
+      call s:wait_for_enter('#ifdef inbetween #include at line %d detected, switch to manual mode', ifdef_line)
       return []
    endif
 
