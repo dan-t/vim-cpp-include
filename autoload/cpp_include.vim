@@ -278,7 +278,7 @@ function! s:file_origin_and_dir(path)
    endfor
 
    call s:log('no origin found for: %s', a:path)
-   return ['undefined', '']
+   return ['', '']
 endfunction
 
 function! s:test_file_origin_and_dir()
