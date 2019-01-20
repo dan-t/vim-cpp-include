@@ -278,11 +278,11 @@ endfunction
 function! s:test_file_origin_and_dir()
 endfunction
 
-function! s:order(origin)
+function! s:sort_order(origin)
    if has_key(s:origin_to_data, a:origin)
       let loc = s:origin_to_data[a:origin]
-      if has_key(loc, 'order')
-         return loc['order']
+      if has_key(loc, 'sort_order')
+         return loc['sort_order']
       endif
    endif
 
@@ -499,7 +499,7 @@ endfunction
 
 " compare function compatible with vim's interal 'sort' function
 function! s:compare_include(include1, include2)
-   let cmp = fn#compare(s:order(a:include1.origin), s:order(a:include2.origin))
+   let cmp = fn#compare(s:sort_order(a:include1.origin), s:sort_order(a:include2.origin))
    if cmp != 0
       return cmp
    endif
