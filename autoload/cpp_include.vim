@@ -1,15 +1,36 @@
-function! cpp_include#include(symbol)
+function! cpp_include#include(...)
    if !s:has_valid_settings()
+      return
+   endif
+
+   if len(a:000) > 2
+      call cpp_include#print_error("invalid arguments '%s'", a:000)
       return
    endif
 
    call s:save_vim_settings()
    call s:set_vim_settings()
 
-   let symid = s:symbol_id(a:symbol)
-   if empty(symid)
+   let symbol = len(a:000) >= 1 ? a:000[0] : ''
+   let origin = len(a:000) == 2 ? a:000[1] : ''
+   if symbol == ''
+      let [csymbol, csymbol_with_namespace] = s:symbol_under_cursor()
+      let symbol = csymbol
+      if origin == ''
+         let origin = s:symbol_origin(csymbol_with_namespace)
+      endif
+   endif
+
+   if symbol == ''
+      call cpp_include#print_error("missing symbol")
       call s:restore_vim_settings()
-      call cpp_include#print_error("couldn't find anything for '%s'", a:symbol)
+      return
+   endif
+
+   let symid = s:symbol_id(symbol, origin)
+   if empty(symid)
+      call cpp_include#print_error("couldn't find anything for '%s'", symbol)
+      call s:restore_vim_settings()
       return
    endif
 
@@ -142,6 +163,18 @@ function! cpp_include#test()
    call test#finish()
 endfunction
 
+function! s:symbol_under_cursor()
+   set iskeyword=@,48-57,_,192-255
+   let symbol = expand('<cword>')
+
+   set iskeyword=@,48-57,_,192-255,:
+   let symbol_with_namespace = expand('<cword>')
+
+   let sym = [symbol, symbol_with_namespace]
+   call s:log("symbol_under_cursor='%s'", sym)
+   return sym
+endfunction
+
 function! s:input(...)
    echohl Question
    let msg = printf('cpp-include: %s', call('printf', a:000))
@@ -196,7 +229,7 @@ function! s:restore_settings()
    let s:saved_settings = {}
 endfunction
 
-function! s:symbol_id(symbol)
+function! s:symbol_id(symbol, origin)
    " check if there's a forced origin for 'symbol'
    if has_key(g:cpp_include_forced_headers, a:symbol)
       let symid = g:cpp_include_forced_headers[a:symbol]
@@ -207,12 +240,22 @@ function! s:symbol_id(symbol)
 
    " find a matching tag for 'symbol'
    let tags = taglist('^' . a:symbol . '$')
+
+   " only consider tags from header files
    call filter(tags, { i, t -> s:is_cpp_header_file(t.filename) })
+
+   " find the origin of the tag and strip in the include
+   " directory from its path
    for tag in tags
       let [origin, dir] = s:file_origin_and_dir(tag.filename)
       let tag.file_origin = origin
       let tag.filename = substitute(tag.filename, dir, '', '')
    endfor
+
+   " ony consider tags with a matching origin
+   if !empty(a:origin)
+      call filter(tags, { i, t -> t.file_origin == a:origin })
+   endif
 
    if empty(tags)
       call cpp_include#print_error("couldn't find any tags for '%s'", a:symbol)
@@ -235,6 +278,25 @@ function! s:symbol_id(symbol)
    let symid = { 'symbol': a:symbol, 'origin': tag.file_origin, 'path': tag.filename }
    call s:log("symid='%s'", symid)
    return symid
+endfunction
+
+function! s:symbol_origin(symbol)
+   if a:symbol == ''
+      return ''
+   endif
+
+   for [origin, data] in g:cpp_include_origins
+      if has_key(data, 'symbol_regex')
+         let regex = data.symbol_regex
+         if a:symbol =~ regex
+            call s:log("symbol_origin('%s') = '%s'", a:symbol, origin)
+            return origin
+         endif
+      endif
+   endfor
+
+   call s:log("no origin found for symbol='%s'", a:symbol)
+   return ''
 endfunction
 
 " split tags by ctags kind"
