@@ -622,22 +622,22 @@ function! s:include_position_fallback(includes)
 
    for fallback in g:cpp_include_position_fallback
       call s:log("trying fallback='%s'", fallback)
-      if has_key(fallback, 'regex') && has_key(fallback, 'pos')
+      if has_key(fallback, 'line_regex') && has_key(fallback, 'pos')
          " reset cursor for 'search' call
          call cursor(1, 1)
-         let regex = fallback['regex']
-         if type(regex) == type('')
-            let line = search(regex, 'c')
+         let line_regex = fallback['line_regex']
+         if type(line_regex) == type('')
+            let line = search(line_regex, 'c')
             if line == 0
                continue
             endif
 
             call s:log("using fallback='%s'", fallback)
             return { 'line': line, 'pos': fallback['pos'] }
-         elseif type(regex) == type([])
+         elseif type(line_regex) == type([])
             let line = 0
-            for line_regex in regex
-               let line = search(line_regex, 'c')
+            for regex in line_regex
+               let line = search(regex, 'c')
                if line == 0
                   break
                endif
@@ -650,7 +650,7 @@ function! s:include_position_fallback(includes)
             call s:log("using fallback='%s'", fallback)
             return { 'line': line, 'pos': fallback['pos'] }
          else
-            throw printf("unexpected regex of include position fallback='%s'", regex)
+            throw printf("unexpected line_regex of include position fallback='%s'", line_regex)
          endif
       elseif has_key(fallback, 'line') && has_key(fallback, 'pos')
          return fallback
