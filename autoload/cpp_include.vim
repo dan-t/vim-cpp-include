@@ -133,6 +133,12 @@ function! cpp_include#init_settings()
    endif
 
    call s:log('cpp_include_default_surround=%s', g:cpp_include_default_surround)
+
+   if !exists('g:cpp_include_position_fallback')
+      let g:cpp_include_position_fallback = []
+   endif
+
+   call s:log('cpp_include_position_fallback=%s', g:cpp_include_position_fallback)
 endfunction
 
 function! cpp_include#test()
@@ -550,16 +556,16 @@ endfunction
 
 function! s:include_position(symbol_id, includes)
    if empty(a:includes)
-      return {}
+      return s:include_position_fallback([])
    endif
 
    let origin_incs = deepcopy(a:includes)
    call filter(origin_incs, { idx, inc -> inc.origin == a:symbol_id.origin })
 
    " if no matching origin could be found, then
-   " just use the last include
+   " try the include position fallback
    if empty(origin_incs)
-      return { 'line': a:includes[-1].line, 'pos': 'below' }
+      return s:include_position_fallback(a:includes)
    endif
 
    if s:are_sorted(origin_incs)
@@ -601,10 +607,60 @@ function! s:include_position(symbol_id, includes)
    endfor
 
    if empty(best_inc)
-      return { 'line': a:includes[-1].line, 'pos': 'below' }
+      return s:include_position_fallback(a:includes)
    endif
 
    return { 'line': best_inc.line, 'pos': 'below' }
+endfunction
+
+function! s:include_position_fallback(includes)
+   " if there's no matching position fallback,
+   " then just use the last include
+   if !empty(a:includes)
+      return { 'line': a:includes[-1].line, 'pos': 'below' }
+   endif
+
+   for fallback in g:cpp_include_position_fallback
+      call s:log("trying fallback='%s'", fallback)
+      if has_key(fallback, 'regex') && has_key(fallback, 'pos')
+         " reset cursor for 'search' call
+         call cursor(1, 1)
+         let regex = fallback['regex']
+         if type(regex) == type('')
+            let line = search(regex, 'c')
+            if line == 0
+               continue
+            endif
+
+            call s:log("using fallback='%s'", fallback)
+            return { 'line': line, 'pos': fallback['pos'] }
+         elseif type(regex) == type([])
+            let line = 0
+            for line_regex in regex
+               let line = search(line_regex, 'c')
+               if line == 0
+                  break
+               endif
+            endfor
+
+            if line == 0
+               continue
+            endif
+
+            call s:log("using fallback='%s'", fallback)
+            return { 'line': line, 'pos': fallback['pos'] }
+         else
+            throw printf("unexpected regex of include position fallback='%s'", regex)
+         endif
+      elseif has_key(fallback, 'line') && has_key(fallback, 'pos')
+         return fallback
+      else
+         throw printf("unexpected include position fallback='%s'", fallback)
+      endif
+   endfor
+
+   call s:log('no fallback found')
+   return {}
 endfunction
 
 function! s:log(...)
