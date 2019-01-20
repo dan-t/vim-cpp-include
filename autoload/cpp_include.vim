@@ -259,10 +259,10 @@ function! s:file_origin_and_dir(path)
             let dir = s:ensure_ends_with_seperator(dir)
             let has_file = 0
             if is_abs
-               let has_file = a:path =~# dir
+               let has_file = a:path =~ dir
             elseif filereadable(dir . a:path)
                let has_file = 1
-            elseif cur_file_dir =~# dir
+            elseif cur_file_dir =~ dir
                let has_file = filereadable(cur_file_dir . a:path)
             endif
 
@@ -271,7 +271,7 @@ function! s:file_origin_and_dir(path)
             endif
          endfor
       elseif has_key(data, 'path_regex')
-         if a:path =~# data.path_regex
+         if a:path =~ data.path_regex
             return [origin, '']
          endif
       endif
@@ -415,7 +415,7 @@ function! s:select_line()
    if line_str =~ '\v^[ \n\t]*$'
       let pos = 'at'
    " if the first line is a non include line, then insert the line above
-   elseif line == 1 && line_str !~# s:include_regex
+   elseif line == 1 && line_str !~ s:include_regex
       let pos = 'above'
    endif
 
