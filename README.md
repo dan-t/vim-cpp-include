@@ -39,14 +39,16 @@ The present includes can be sorted by calling `:CppIncludeSort`, which uses `sor
 Configuration
 =============
 
-g:cpp_include_header_extensions (default=["h", "", "hh", "hpp", "hxx"])
------------------------------------------------------------------------
+g:cpp_include_header_extensions
+-------------------------------
+(default=["h", "", "hh", "hpp", "hxx"])
 
 Only tags from header files are considered. The lowercase extension of the tag filename is
 compared with `g:cpp_include_header_extensions`.
 
-g:cpp_include_kinds_order (default=[["c", "s", "g", "u", "t", "d"], ["p", "f", "x"]])
--------------------------------------------------------------------------------------
+g:cpp_include_kinds_order
+-------------------------
+(default=[["c", "s", "g", "u", "t", "d"], ["p", "f", "x"]])
 
 Only tags of certain kinds are considered. For the meaning of the kinds take a look at
 the output of `ctags --list-kinds=C++`. Each list or string inside of `cpp_include_kinds_order`
@@ -54,8 +56,9 @@ is considered as one group. The groups act as a filter on the tags. E.g. if for 
 `vector` there is a class definition (kind="c") and a function definition (kind="f"), then
 the class definition is prefered, because "c" is in front of "f".
 
-g:cpp_include_forced_headers (default={})
------------------------------------------
+g:cpp_include_forced_headers
+----------------------------
+(default={})
 
 If the same name has multiple tags, which means you've to choose which tag should be used, but
 for this name you always want to use the same tag and therefore header, then you can force
@@ -64,13 +67,15 @@ the used header by:
     let g:cpp_include_forced_headers = { 
        \ 'some_name': { 'origin': 'my_app', 'path': 'SomeHeader.h' } }
 
-g:cpp_include_default_surround (default='"')
---------------------------------------------
+g:cpp_include_default_surround
+------------------------------
+(default='"')
 
 If there's no `surround` entry for the origin then `g:cpp_include_default_surround` is used.
 
-g:cpp_include_position_fallback (default=[])
---------------------------------------------
+g:cpp_include_position_fallback
+-------------------------------
+(default=[])
 
 If there're no includes present, then an include position has to be choosen. With
 `g:cpp_include_position_fallback` it's possible to automatically choose the first position:
