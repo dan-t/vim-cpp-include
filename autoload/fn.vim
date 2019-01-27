@@ -151,7 +151,7 @@ function! fn#compare_list(xs, ys)
 endfunction
 
 function! fn#test()
-   call test#start()
+   let v:errors = []
 
    call assert_equal(6, fn#fold([1, 2, 3], { i, acc -> i + acc }))
    call assert_equal('abc', fn#fold(['a', 'b', 'c'], { i, acc -> acc . i }))
@@ -192,7 +192,14 @@ function! fn#test()
    call assert_equal([[1, 'b'], [2, 'a']], sort([[2, 'a'], [1, 'b']], { x, y -> fn#compare_list(x, y) }))
    call assert_equal([[1, 'b'], [2, 'a']], sort([[2, 'a'], [1, 'b']],  function('fn#compare_list')))
 
-   call test#finish()
+   if !empty(v:errors)
+      let msg = ''
+      echohl ErrorMsg
+      for e in v:errors
+         echomsg printf('%s', e)
+      endfor
+      echohl None
+   endif
 endfunction
 
 function! s:map_list(list, fn)

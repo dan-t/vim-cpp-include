@@ -147,7 +147,8 @@ function! cpp_include#init_settings()
 endfunction
 
 function! cpp_include#test()
-   call test#start()
+   let v:errors = []
+
    call cpp_include#init_settings()
    call s:save_settings()
 
@@ -160,7 +161,15 @@ function! cpp_include#test()
    endfor
 
    call s:restore_settings()
-   call test#finish()
+
+   if !empty(v:errors)
+      let msg = ''
+      echohl ErrorMsg
+      for e in v:errors
+         echomsg printf('%s', e)
+      endfor
+      echohl None
+   endif
 endfunction
 
 function! s:symbol_under_cursor()
