@@ -87,6 +87,22 @@ If there're no includes present, then an include position has to be chosen. With
 This would first search for a line matching `^// includes`, and if one could be found, the
 include would be placed below it. Otherwise the include would be placed above the first line.
 
+g:cpp_include_origins
+---------------------
+(default={})
+
+Beside the already shown entries in the `Quick Start` section, an origin can additionally contain
+a `symbol_regex` entry. This is used as another filter on the tags.
+
+E.g. by default the `std` origin gets `\v^std::` as its `symbol_regex`. If
+`:CppInclude` gets called and the cursor is above `std::vector`, then the
+`symbol_regex` will match and only tags from the origin `std` are considered
+for the name `vector`.
+
+So it's most useful for sources with different namespaces that might contain
+the same names. Without `symbol_regex` the tags with the same names would
+collide and the user has to choose which tag should be used.
+
 Credits
 =======
 
