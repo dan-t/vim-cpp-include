@@ -316,22 +316,20 @@ function! s:file_origin_and_dir(path)
    let is_abs = s:is_absolute(a:path)
    let cur_file_dir = s:ensure_ends_with_seperator(expand('%:p:h'))
    for [origin, data] in g:cpp_include_origins
-      if has_key(data, 'dirs')
-         for dir in data.dirs
-            let dir = s:ensure_ends_with_seperator(dir)
-            let has_file = 0
-            if is_abs
-               let has_file = a:path =~ dir
-            elseif filereadable(dir . a:path)
-               let has_file = 1
-            elseif cur_file_dir =~ dir
-               let has_file = filereadable(cur_file_dir . a:path)
-            endif
+      if has_key(data, 'directory')
+         let dir = s:ensure_ends_with_seperator(data.directory)
+         let has_file = 0
+         if is_abs
+            let has_file = a:path =~ dir
+         elseif filereadable(dir . a:path)
+            let has_file = 1
+         elseif cur_file_dir =~ dir
+            let has_file = filereadable(cur_file_dir . a:path)
+         endif
 
-            if has_file
-               return [origin, dir]
-            endif
-         endfor
+         if has_file
+            return [origin, dir]
+         endif
       elseif has_key(data, 'path_regex')
          if a:path =~ data.path_regex
             return [origin, '']
