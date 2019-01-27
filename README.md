@@ -77,7 +77,7 @@ g:cpp_include_position_fallback
 -------------------------------
 (default=[])
 
-If there're no includes present, then an include position has to be choosen. With
+If there're no includes present, then an include position has to be chosen. With
 `g:cpp_include_position_fallback` it's possible to automatically choose the first position:
 
     let g:cpp_include_position_fallback = [
