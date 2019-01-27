@@ -86,3 +86,10 @@ If there're no includes present, then an include position has to be chosen. With
 
 This would first search for a line matching `^// includes`, and if one could be found, the
 include would be placed below it. Otherwise the include would be placed above the first line.
+
+Credits
+=======
+
+The tags for the C++ standard library are only possible because of the cleaned up header
+files from [cppreference](https://cppreference.com). Thanks a lot to `cppreference` for allowing
+the usage with `vim-cpp-include`!
