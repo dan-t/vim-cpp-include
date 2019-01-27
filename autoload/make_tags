@@ -1,0 +1,4 @@
+#! /bin/sh
+ctags --c++-kinds=+px --language-force=C++ -DCPPREFERENCE_STDVER=2011 --tag-relative=always -o c++11.tags std-headers/*
+ctags --c++-kinds=+px --language-force=C++ -DCPPREFERENCE_STDVER=2014 --tag-relative=always -o c++14.tags std-headers/*
+ctags --c++-kinds=+px --language-force=C++ -DCPPREFERENCE_STDVER=2017 --tag-relative=always -o c++17.tags std-headers/*

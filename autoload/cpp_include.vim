@@ -118,6 +118,27 @@ function! cpp_include#init_settings()
       let g:cpp_include_origins = []
    endif
 
+   let [found_std, std] = fn#find(g:cpp_include_origins, { x -> x[0] == 'std' })
+   if found_std
+      let std_data = std[1]
+      if has_key(std_data, 'version')
+         let [found_vers, vers] = fn#find(['c++11', 'c++14', 'c++17'], { x -> x == std_data.version })
+         if !found_vers
+            cpp_include#print_error("unsupported value for 'version': '%s'", vers)
+            let std_data.version = 'c++11'
+         endif
+      else
+         let std_data.version = 'c++11'
+      endif
+
+      let std_data.directory = s:script_path . 'std-headers'
+      let std_data.symbol_regex = '\v^std::'
+
+      let std_tags_file = printf('%s%s.tags', s:script_path, std_data.version)
+      exe printf('setlocal tags=%s,%s', &tags, std_tags_file)
+      call s:log('setlocal tags=%s', &tags)
+   endif
+
    call s:log('cpp_include_origins=%s', g:cpp_include_origins)
 
    let s:origin_to_data = {}
@@ -130,6 +151,10 @@ function! cpp_include#init_settings()
    if !exists('g:cpp_include_forced_headers')
       let g:cpp_include_forced_headers = {}
    endif
+
+   let g:cpp_include_forced_headers.cout = { 'origin': 'std', 'path': 'iostream' }
+   let g:cpp_include_forced_headers.cerr = { 'origin': 'std', 'path': 'iostream' }
+   let g:cpp_include_forced_headers.cin = { 'origin': 'std', 'path': 'iostream' }
 
    call s:log('cpp_include_forced_headers=%s', g:cpp_include_forced_headers)
 
@@ -257,6 +282,7 @@ function! s:symbol_id(symbol, origin)
    " directory from its path
    for tag in tags
       let [origin, dir] = s:file_origin_and_dir(tag.filename)
+      call s:log("tag.filename='%s', origin='%s', dir='%s'", tag.filename, origin, dir)
       let tag.file_origin = origin
       let tag.filename = substitute(tag.filename, dir, '', '')
    endfor
@@ -879,3 +905,4 @@ let s:saved_vim_settings = {}
 
 let s:include_regex = '\v^[ \t]*#[ \t]*include'
 let s:include_path_regex = s:include_regex . '[ \t]*([<"]*)([^>"]+)([>"]*)'
+let s:script_path = s:ensure_ends_with_seperator(expand('<sfile>:p:h'))
