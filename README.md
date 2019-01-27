@@ -4,6 +4,10 @@ vim-cpp-include
 This is a plugin for the [vim](http://www.vim.org/) editor for extending the include
 list of a C/C++ source file with the aid of a [tags](https://en.wikipedia.org/wiki/Ctags) file.
 
+The plugin doesn't create tags, but only provides tags for the C++ standard library.
+The tags for the sources have to be created with a tool like [universal ctags](https://github.com/universal-ctags/ctags).
+Take a look at `:help tags-and-searches` how tags are used and configured in vim.
+
 Installation
 ============
 
