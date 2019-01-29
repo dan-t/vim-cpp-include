@@ -55,10 +55,12 @@ g:cpp_include_kinds_order
 (default=[["c", "s", "g", "u", "t", "d"], ["p", "f", "x"]])
 
 Only tags of certain kinds are considered. For the meaning of the kinds take a look at
-the output of `ctags --list-kinds=C++`. Each list or string inside of `cpp_include_kinds_order`
+the output of `ctags --list-kinds=C++`. Each list or string inside of `g:cpp_include_kinds_order`
 is considered as one group. The groups act as a filter on the tags. E.g. if for the name
 `vector` there is a class definition (kind="c") and a function definition (kind="f"), then
-the class definition is prefered, because "c" is in front of "f".
+the class definition is prefered, because "c" is in front of "f". If there would be a
+class definition and a struct definition (kind="s") for `vector`, then the user had to
+choose which one to use, because "c" and "s" are in the same group.
 
 g:cpp_include_forced_headers
 ----------------------------
