@@ -283,9 +283,28 @@ function! s:symbol_id(symbol, origin)
    " directory from its path
    for tag in tags
       let [origin, dir] = s:file_origin_and_dir(tag.filename)
-      call s:log("tag.filename='%s', origin='%s', dir='%s'", tag.filename, origin, dir)
-      let tag.file_origin = origin
-      let tag.filename = substitute(tag.filename, dir, '', '')
+
+      " if the file is from the directory of the current file, then
+      " strip away the whole directory to get an include of only the filename
+      let cur_file_dir = s:ensure_ends_with_seperator(expand('%:p:h'))
+      if tag.filename =~ cur_file_dir
+         let dir = cur_file_dir
+         let tag.filename = substitute(tag.filename, cur_file_dir, '', '')
+
+         " check if there's a special origin for paths without directories
+         " but just the filename, e.g. they might be sorted differently
+         let cur_origin = s:file_origin_and_dir(tag.filename)[0]
+         if cur_origin != ''
+            let origin = cur_origin
+         endif
+
+         call s:log("tag.filename='%s', origin='%s', dir='%s'", tag.filename, origin, dir)
+         let tag.file_origin = origin
+      else
+         call s:log("tag.filename='%s', origin='%s', dir='%s'", tag.filename, origin, dir)
+         let tag.file_origin = origin
+         let tag.filename = substitute(tag.filename, dir, '', '')
+      endif
    endfor
 
    " ony consider tags with a matching origin
