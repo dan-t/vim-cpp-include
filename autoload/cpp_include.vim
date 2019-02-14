@@ -155,6 +155,7 @@ function! cpp_include#init_settings()
    let g:cpp_include_forced_headers.cout = { 'origin': 'std', 'path': 'iostream' }
    let g:cpp_include_forced_headers.cerr = { 'origin': 'std', 'path': 'iostream' }
    let g:cpp_include_forced_headers.cin = { 'origin': 'std', 'path': 'iostream' }
+   let g:cpp_include_forced_headers.stringstream = { 'origin': 'std', 'path': 'sstream' }
 
    call s:log('cpp_include_forced_headers=%s', g:cpp_include_forced_headers)
 
