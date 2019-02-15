@@ -279,32 +279,31 @@ function! s:symbol_id(symbol, origin)
    " only consider tags from header files
    call filter(tags, { i, t -> s:is_cpp_header_file(t.filename) })
 
-   " find the origin of the tag and strip in the include
-   " directory from its path
+   " find the origin of the tag and strip the include directory from its filename
    for tag in tags
-      let [origin, dir] = s:file_origin_and_dir(tag.filename)
+      let orig_tag_filename = tag.filename
+      let [origin, dir] = s:file_origin_and_dir(orig_tag_filename)
+      let tag.file_origin = origin
+      let tag.filename = substitute(orig_tag_filename, dir, '', '')
+      let tag.relative_filename = ''
 
       " if the file is from the directory of the current file, then
       " strip away the whole directory to get an include of only the filename
       let cur_file_dir = s:ensure_ends_with_seperator(expand('%:p:h'))
-      if tag.filename =~ cur_file_dir
+      if orig_tag_filename =~ cur_file_dir
          let dir = cur_file_dir
-         let tag.filename = substitute(tag.filename, cur_file_dir, '', '')
+         let tag.relative_filename = substitute(orig_tag_filename, cur_file_dir, '', '')
 
          " check if there's a special origin for paths without directories
          " but just the filename, e.g. they might be sorted differently
-         let cur_origin = s:file_origin_and_dir(tag.filename)[0]
+         let cur_origin = s:file_origin_and_dir(tag.relative_filename)[0]
          if cur_origin != ''
-            let origin = cur_origin
+            let tag.file_origin = cur_origin
          endif
-
-         call s:log("tag.filename='%s', origin='%s', dir='%s'", tag.filename, origin, dir)
-         let tag.file_origin = origin
-      else
-         call s:log("tag.filename='%s', origin='%s', dir='%s'", tag.filename, origin, dir)
-         let tag.file_origin = origin
-         let tag.filename = substitute(tag.filename, dir, '', '')
       endif
+
+      call s:log("tag.filename='%s', tag.file_origin='%s', tag.relative_filename='%s'",
+               \ tag.filename, tag.file_origin, tag.relative_filename)
    endfor
 
    " ony consider tags with a matching origin
@@ -330,7 +329,12 @@ function! s:symbol_id(symbol, origin)
 
    call s:log('selected tag: %s', tag)
 
-   let symid = { 'symbol': a:symbol, 'origin': tag.file_origin, 'path': tag.filename }
+   let symid = {
+      \ 'symbol': a:symbol,
+      \ 'origin': tag.file_origin,
+      \ 'path': tag.filename,
+      \ 'relative_path': tag.relative_filename }
+
    call s:log("symid='%s'", symid)
    return symid
 endfunction
@@ -557,13 +561,14 @@ function! s:are_sorted(includes)
 endfunction
 
 function! s:format_include(symbol_id)
+   let path = a:symbol_id.relative_path != '' ? a:symbol_id.relative_path : a:symbol_id.path
    let surround = s:include_surround(a:symbol_id.origin)
    if surround == '"'
-      return printf('#include "%s"', a:symbol_id.path)
+      return printf('#include "%s"', path)
    elseif surround == '<' || surround == '>'
-      return printf('#include <%s>', a:symbol_id.path)
+      return printf('#include <%s>', path)
    elseif surround == ''
-      return printf('#include %s', a:symbol_id.path)
+      return printf('#include %s', path)
    endif
 
    throw printf("unexpected include surround='%s'", surround)
@@ -647,7 +652,7 @@ function! s:find_include(symbol_id, includes)
    call s:log("find_include: symbol_id='%s'", a:symbol_id)
    for inc in a:includes
       call s:log("find_include: inc='%s'", inc)
-      if a:symbol_id.path == inc.path
+      if a:symbol_id.path == inc.path || a:symbol_id.relative_path == inc.path
          return inc
       endif
    endfor
