@@ -30,9 +30,10 @@ which are defined by `g:cpp_include_origins`:
        \ ['my_app', { 'directory': '/path_to_headers_of_my_app/', 'surround': '"', 'sort_order': 1 }],
        \ ['some_lib', { 'directory': '/path_to_headers_of_some_lib/', 'surround': '"', 'sort_order': 2 }]]
  
-This defines three origins: `std`, `my_app` and `some_lib`. The `surround` defines how the includes from
-the origin are formated. So the `<` for `std` yields an include like: `#include <vector>`. The `sort_order`
-defines how the includes are sorted. The currently supported versions of `std` are: `c++11`, `c++14` and `c++17`.
+This defines three origins: `std`, `my_app` and `some_lib`. The `directory` defines the root directory of
+the headers. The `surround` defines how the includes are formated. So the `<` for `std` yields an include
+like: `#include <vector>`. The `sort_order` defines how the includes are sorted. The currently supported
+values of `version` for `std` are: `c++11`, `c++14` and `c++17`.
 
 Now calling `:CppInclude vector` should add the include `#include <vector>`. If there were no includes present
 before, then you have to choose an include position. For the automatic choosing of the position of the first include
