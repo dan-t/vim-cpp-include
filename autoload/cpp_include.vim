@@ -104,15 +104,18 @@ function! cpp_include#init_settings()
       " prefer tags in the order: class, struct, enum, union, typedef, define, function prototype, function, extern/forward declarations
       let g:cpp_include_kinds_order = [["c", "s", "g", "u", "t", "d"], ["p", "f", "x"]]
    endif
-
    call s:log('cpp_include_kinds_order=%s', g:cpp_include_kinds_order)
 
    if !exists('g:cpp_include_header_extensions')
       " only consider tags from files with one of these extensions
       let g:cpp_include_header_extensions = ["h", "", "hh", "hpp", "hxx"]
    endif
-
    call s:log('cpp_include_header_extensions=%s', g:cpp_include_header_extensions)
+
+   if !exists('g:cpp_include_source_extensions')
+      let g:cpp_include_source_extensions = ["cpp", "c", "cc", "cxx"]
+   endif
+   call s:log('cpp_include_source_extensions=%s', g:cpp_include_source_extensions)
 
    if !exists('g:cpp_include_origins')
       let g:cpp_include_origins = []
@@ -274,10 +277,35 @@ function! s:symbol_id(symbol, origin)
    endif
 
    " find a matching tag for 'symbol'
-   let tags = taglist('^' . a:symbol . '$')
+   let all_tags = taglist('^' . a:symbol . '$')
+   call s:log("found tags for symbol='%s': %s", a:symbol, all_tags)
 
    " only consider tags from header files
-   call filter(tags, { i, t -> s:is_cpp_header_file(t.filename) })
+   let header_tags = deepcopy(all_tags)
+   call filter(header_tags, { i, t -> s:is_cpp_header_file(t.filename) })
+   call s:log("found header tags for symbol='%s': %s", a:symbol, header_tags)
+
+   let tags = header_tags
+
+   " If there're no tags from header files, the symbol might be referencing a
+   " function or method, and if the prototypes aren't tagged - which is the
+   " default - then there will be no tags for header files. To handle this
+   " case, check if for the source files there're header files available
+   " and use these header files.
+   if empty(tags)
+      call s:log("no header tags found for symbol='%s'", a:symbol)
+      call s:log("check if headers for source tags are available")
+      for tag in all_tags
+         if s:is_cpp_source_file(tag.filename)
+            let header = s:find_cpp_header_file(tag.filename)
+            if header != ''
+               call s:log("found header='%s' for source='%s'", header, tag.filename)
+               let tag.filename = header
+               call add(tags, tag)
+            endif
+         endif
+      endfor
+   endif
 
    " find the origin of the tag and strip the include directory from its filename
    for tag in tags
@@ -354,7 +382,6 @@ function! s:symbol_origin(symbol)
       endif
    endfor
 
-   call s:log("no origin found for symbol='%s'", a:symbol)
    return ''
 endfunction
 
@@ -425,15 +452,39 @@ function! s:max_sort_order()
    return sort_order
 endfunction
 
-function! s:is_cpp_header_file(path)
+function! s:has_extension(extensions, path)
    let fileext = tolower(fnamemodify(a:path, ':e'))
-   for ext in g:cpp_include_header_extensions
+   for ext in a:extensions
       if tolower(ext) == tolower(fileext)
          return 1
       endif
    endfor
 
    return 0
+endfunction
+
+function! s:remove_extension(path)
+   return fnamemodify(a:path, ':r')
+endfunction
+
+function! s:is_cpp_header_file(path)
+   return s:has_extension(g:cpp_include_header_extensions, a:path)
+endfunction
+
+function! s:is_cpp_source_file(path)
+   return s:has_extension(g:cpp_include_source_extensions, a:path)
+endfunction
+
+function! s:find_cpp_header_file(source_path)
+   let path = s:remove_extension(a:source_path)
+   for ext in g:cpp_include_header_extensions
+      let header = printf('%s.%s', path, ext)
+      if filereadable(header)
+         return header
+      endif
+   endfor
+
+   return ''
 endfunction
 
 function! s:select_tag(tags)
