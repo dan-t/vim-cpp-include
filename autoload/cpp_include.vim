@@ -34,7 +34,7 @@ function! cpp_include#include(...)
       return
    endif
 
-   let includes = s:find_all_includes()
+   let includes = s:find_all_includes()[0]
    let symid_inc = s:find_include(symid, includes)
    if !empty(symid_inc)
       call cpp_include#print_info("already present '%s' at line %d", symid_inc.string, symid_inc.line)
@@ -64,14 +64,15 @@ function! cpp_include#sort()
    call s:save_vim_settings()
    call s:set_vim_settings()
 
-   let includes = s:find_all_includes()
-   if !empty(includes)
-      let lines = fn#map(includes, { i -> i.line })
-      call sort(includes, function('s:compare_include'))
-      for i in range(min([len(lines), len(includes)]))
-         call setline(lines[i], includes[i].string)
-      endfor
-   endif
+   for includes in s:find_all_includes()
+      if !empty(includes)
+         let lines = fn#map(includes, { i -> i.line })
+         call sort(includes, function('s:compare_include'))
+         for i in range(min([len(lines), len(includes)]))
+            call setline(lines[i], includes[i].string)
+         endfor
+      endif
+   endfor
 
    call s:restore_vim_settings()
 endfunction
@@ -725,19 +726,94 @@ function! s:find_all_includes()
    endwhile
 
    if empty(lines)
+      return [[]]
+   endif
+
+   let grouped_lines = []
+   let ifdef_ranges = s:find_ifdef_ranges(lines[0], lines[-1])
+   if !empty(ifdef_ranges)
+      call map(ifdef_ranges, { idx, range -> [printf('%s', range), range] })
+      let ifdef_groups = {}
+      let non_ifdef_lines = []
+      for line in lines
+         let ifdef_range_key = ''
+         for [range_key, range] in ifdef_ranges
+            if line >= range[0] && line <= range[1]
+               let ifdef_range_key = range_key
+               break
+            endif
+         endfor
+
+         if !empty(ifdef_range_key)
+            if has_key(ifdef_groups, ifdef_range_key)
+               call add(ifdef_groups[ifdef_range_key], line)
+            else
+               let ifdef_groups[ifdef_range_key] = [line]
+            endif
+         else
+            call add(non_ifdef_lines, line)
+         endif
+      endfor
+
+      call add(grouped_lines, non_ifdef_lines)
+      for lines in values(ifdef_groups)
+         call add(grouped_lines, lines)
+      endfor
+   else
+      call add(grouped_lines, lines)
+   endif
+
+   for lines in grouped_lines
+      call map(lines, { idx, line -> s:parse_include(line, getline(line)) })
+   endfor
+
+   if g:cpp_include_log
+      for i in range(len(grouped_lines))
+         call s:log('includes for group %d', i)
+         for inc in grouped_lines[i]
+            call s:log('   %s', inc)
+         endfor
+      endfor
+   endif
+
+   return grouped_lines
+endfunction
+
+function! s:find_ifdef_ranges(start_line, end_line)
+   if a:start_line == a:end_line || a:start_line > a:end_line
+      call s:log('no ifdef ranges found')
       return []
    endif
 
-   " check if there's an #ifdef inbetween the #include
-   call cursor(lines[0], 1)
-   let ifdef_line = search('\v^[ \t]*#[ \t]*ifn?def', 'cW')
-   if ifdef_line != 0 && ifdef_line < lines[-1]
-      call s:wait_for_enter('#ifdef inbetween #include at line %d detected, switch to manual mode', ifdef_line)
-      return []
+   let ifdef_regex = '\v^[ \t]*#[ \t]*if'
+   let endif_regex = '\v^[ \t]*#[ \t]*endif'
+   let ifdef_ranges = []
+   let ifdef_start_lines = []
+   for line in range(a:start_line, a:end_line)
+      let str_line = getline(line)
+      if str_line =~ ifdef_regex
+         call s:log('found #ifdef at line %d: %s', line, str_line)
+         call add(ifdef_start_lines, line)
+      elseif str_line =~ endif_regex && !empty(ifdef_start_lines)
+         call s:log('found #endif at line %d: %s', line, str_line)
+         call add(ifdef_ranges, [ifdef_start_lines[-1], line])
+         let ifdef_start_lines = ifdef_start_lines[:-2]
+      endif
+   endfor
+
+   if !empty(ifdef_start_lines)
+      call s:log('add #endif for line %d', a:end_line + 1)
+      call add(ifdef_ranges, [ifdef_start_lines[-1], a:end_line + 1])
    endif
 
-   call map(lines, { idx, line -> s:parse_include(line, getline(line)) })
-   return lines
+   if g:cpp_include_log
+      for [range_start, range_end] in ifdef_ranges
+         call s:log('range_start=%d, range_end=%s', range_start, range_end)
+      endfor
+   endif
+
+   call s:log('ifdef_ranges=%s', ifdef_ranges)
+   return ifdef_ranges
 endfunction
 
 function! s:include_position(symbol_id, includes)
