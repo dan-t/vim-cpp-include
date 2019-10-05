@@ -802,8 +802,13 @@ function! s:find_ifdef_ranges(start_line, end_line)
    endfor
 
    if !empty(ifdef_start_lines)
-      call s:log('add #endif for line %d', a:end_line + 1)
-      call add(ifdef_ranges, [ifdef_start_lines[-1], a:end_line + 1])
+      " close the still open #ifdefs
+      call reverse(ifdef_start_lines)
+      for i in range(len(ifdef_start_lines))
+         let endif_line = a:end_line + (i + 1)
+         call s:log('add #endif for line %d', endif_line)
+         call add(ifdef_ranges, [ifdef_start_lines[i], endif_line])
+      endfor
    endif
 
    if g:cpp_include_log
