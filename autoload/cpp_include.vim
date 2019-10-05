@@ -1054,8 +1054,11 @@ let s:settings = [
    \ 'g:cpp_include_log_file',
    \ 'g:cpp_include_kinds_order',
    \ 'g:cpp_include_header_extensions',
+   \ 'g:cpp_include_source_extensions',
    \ 'g:cpp_include_origins',
+   \ 'g:cpp_include_forced_headers',
    \ 'g:cpp_include_default_surround',
+   \ 'g:cpp_include_position_fallback',
    \ 's:origin_to_data' ]
 
 let s:saved_vim_settings = {}
