@@ -42,6 +42,7 @@ take a look at `g:cpp_include_position_fallback`.
 Calling `:CppInclude` without any argument will take the name under the cursor, so you can use it to define a mapping.
 
 The present includes can be sorted by calling `:CppIncludeSort`, which uses `sort_order` for the sorting.
+The includes inside of one `sort_order` are sorted alphabetically.
 
 Configuration
 =============
