@@ -47,6 +47,7 @@ Configuration
 =============
 
 These variables are available to be set inside of the `~/.vimrc` file, e.g.: 
+
     let g:cpp_include_header_extensions=["h"]
 
 g:cpp_include_header_extensions
