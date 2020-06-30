@@ -46,7 +46,7 @@ function! cpp_include#include(...)
 
       if !empty(inc_pos)
          let include_str = s:format_include(symid)
-         call s:log("symid='%s', include_str='%s'", symid, include_str)
+         call s:log("inc_pos='%s', symid='%s', include_str='%s'", inc_pos, symid, include_str)
 
          call s:add_include(inc_pos, include_str)
 
@@ -665,12 +665,7 @@ function! s:add_include(include_pos, include_str)
       call setline(a:include_pos.line, a:include_str)
    else
       if a:include_pos.pos == 'above'
-         if a:include_pos.line == 1
-            let cur_line_str = getline(a:include_pos.line)
-            call setline(a:include_pos.line, [a:include_str, cur_line_str])
-         else
-            call append(a:include_pos.line - 1, a:include_str)
-         endif
+         call append(a:include_pos.line - 1, a:include_str)
       elseif a:include_pos.pos == 'below'
          call append(a:include_pos.line, a:include_str)
       else
