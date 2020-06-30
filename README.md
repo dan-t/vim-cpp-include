@@ -46,6 +46,8 @@ The present includes can be sorted by calling `:CppIncludeSort`, which uses `sor
 Configuration
 =============
 
+These variables are available to be set inside of the `~/.vimrc` file, e.g.: `let g:cpp_include_header_extensions=["h"]`.
+
 g:cpp_include_header_extensions
 -------------------------------
 (default=["h", "", "hh", "hpp", "hxx"])
