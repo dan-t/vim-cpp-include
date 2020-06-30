@@ -23,7 +23,7 @@ Quick Start
 ===========
 
 The main information for the plugin are the locations of the C/C++ header files
-which are defined by `g:cpp_include_origins`:
+which are defined by `g:cpp_include_origins` in the `~/.vimrc` file:
 
     let g:cpp_include_origins = [
        \ ['std', { 'version': 'c++11', 'surround': '<', 'sort_order': 0 }],
@@ -46,7 +46,8 @@ The present includes can be sorted by calling `:CppIncludeSort`, which uses `sor
 Configuration
 =============
 
-These variables are available to be set inside of the `~/.vimrc` file, e.g.: `let g:cpp_include_header_extensions=["h"]`.
+These variables are available to be set inside of the `~/.vimrc` file, e.g.: 
+    let g:cpp_include_header_extensions=["h"]
 
 g:cpp_include_header_extensions
 -------------------------------
