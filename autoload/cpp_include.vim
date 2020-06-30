@@ -613,7 +613,7 @@ function! s:are_sorted(includes)
 endfunction
 
 function! s:format_include(symbol_id)
-   let path = a:symbol_id.relative_path != '' ? a:symbol_id.relative_path : a:symbol_id.path
+   let path = s:relative_path_or_path(a:symbol_id)
    let surround = s:include_surround(a:symbol_id.origin)
    if surround == '"'
       return printf('#include "%s"', path)
@@ -624,6 +624,14 @@ function! s:format_include(symbol_id)
    endif
 
    throw printf("unexpected include surround='%s'", surround)
+endfunction
+
+function! s:relative_path_or_path(symbol_id)
+   if has_key(a:symbol_id, 'relative_path') && a:symbol_id.relative_path != ''
+      return a:symbol_id.relative_path
+   endif
+
+   return a:symbol_id.path
 endfunction
 
 function! s:include_surround(origin)
@@ -704,7 +712,7 @@ function! s:find_include(symbol_id, includes)
    call s:log("find_include: symbol_id='%s'", a:symbol_id)
    for inc in a:includes
       call s:log("find_include: inc='%s'", inc)
-      if a:symbol_id.path == inc.path || a:symbol_id.relative_path == inc.path
+      if s:relative_path_or_path(a:symbol_id) == inc.path
          return inc
       endif
    endfor
