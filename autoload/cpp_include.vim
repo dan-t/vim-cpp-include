@@ -3,7 +3,7 @@ function! cpp_include#include(...)
       return
    endif
 
-   if len(a:000) > 2
+   if len(a:000) > 3
       call cpp_include#print_error("invalid arguments '%s'", a:000)
       return
    endif
@@ -11,8 +11,10 @@ function! cpp_include#include(...)
    call s:save_vim_settings()
    call s:set_vim_settings()
 
-   let symbol = len(a:000) >= 1 ? a:000[0] : ''
-   let origin = len(a:000) == 2 ? a:000[1] : ''
+   let symbol = s:read_arg(0, a:000)
+   let origin = s:read_arg(1, a:000)
+   let format_origin = s:read_arg(2, a:000)
+
    if symbol == ''
       let [csymbol, csymbol_with_namespace] = s:symbol_under_cursor()
       let symbol = csymbol
@@ -35,6 +37,12 @@ function! cpp_include#include(...)
    endif
 
    let includes = s:find_all_includes()[0]
+
+   if format_origin != ''
+      " use a different origin for the finding of the includes and the formatting
+      let symid.origin = format_origin
+   endif
+
    let symid_inc = s:find_include(symid, includes)
    if !empty(symid_inc)
       call cpp_include#print_info("already present '%s' at line %d", symid_inc.string, symid_inc.line)
@@ -200,6 +208,16 @@ function! cpp_include#test()
       endfor
       echohl None
    endif
+endfunction
+
+function! s:read_arg(pos, args)
+   let arg = ''
+   if a:pos < len(a:args)
+      if a:args[a:pos] != '_'
+         let arg = a:args[a:pos]
+      endif
+   endif
+   return arg
 endfunction
 
 function! s:symbol_under_cursor()
