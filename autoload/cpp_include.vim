@@ -614,27 +614,43 @@ endfunction
 
 function! s:format_include(symbol_id)
    let path = s:relative_path_or_path(a:symbol_id)
-   let surround = s:include_surround(a:symbol_id.origin)
-   if surround == '"'
-      return printf('#include "%s"', path)
-   elseif surround == '<' || surround == '>'
-      return printf('#include <%s>', path)
-   elseif surround == ''
-      return printf('#include %s', path)
-   endif
-
-   throw printf("unexpected include surround='%s'", surround)
+   let Format = s:find_format(a:symbol_id.origin)
+   let surround = s:find_surround(a:symbol_id.origin)
+   call s:log('format_include: found format=%s, surround=%s', Format, surround)
+   if type(Format) == v:t_func
+      return Format(path)
+   else
+      if surround == '"'
+         return printf('#include "%s"', path)
+      elseif surround == '<' || surround == '>'
+         return printf('#include <%s>', path)
+      elseif surround == ''
+         return printf('#include %s', path)
+      endif
+      throw printf("format_include: unexpected include surround='%s'", surround)
 endfunction
 
 function! s:relative_path_or_path(symbol_id)
    if has_key(a:symbol_id, 'relative_path') && a:symbol_id.relative_path != ''
       return a:symbol_id.relative_path
    endif
-
    return a:symbol_id.path
 endfunction
 
-function! s:include_surround(origin)
+function! s:find_format(origin)
+   let Format = v:none
+   if has_key(s:origin_to_data, a:origin)
+      let loc = s:origin_to_data[a:origin]
+      call s:log('find_format: loc=%s', loc)
+      if has_key(loc, 'format')
+         let Format = loc.format
+      endif
+   endif
+   call s:log('find_format: origin=%s, format=%s', a:origin, Format)
+   return Format
+endfunction
+
+function! s:find_surround(origin)
    let surround = g:cpp_include_default_surround
    if has_key(s:origin_to_data, a:origin)
       let loc = s:origin_to_data[a:origin]
@@ -642,8 +658,7 @@ function! s:include_surround(origin)
          let surround = loc.surround
       endif
    endif
-
-   call s:log('origin=%s, surround=%s', a:origin, surround)
+   call s:log('find_surround: origin=%s, surround=%s', a:origin, surround)
    return surround
 endfunction
 
@@ -836,7 +851,6 @@ function! s:include_position(symbol_id, includes)
             return { 'line': inc.line, 'pos': 'above' }
          endif
       endfor
-
       return { 'line': a:includes[-1].line, 'pos': 'below' }
    endif
 
