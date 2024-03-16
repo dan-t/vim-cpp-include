@@ -186,7 +186,7 @@ function! cpp_include#test()
       let s:has_windows_os = has_win_os
       call s:test_split_path()
       call s:test_is_absolute()
-      call s:test_ensure_ends_with_seperator()
+      call s:test_ensure_ends_with_separator()
       call s:test_file_origin_and_dir()
    endfor
 
@@ -318,7 +318,7 @@ function! s:symbol_id(symbol, origin)
 
       " if the file is from the directory of the current file, then
       " strip away the whole directory to get an include of only the filename
-      let cur_file_dir = s:ensure_ends_with_seperator(expand('%:p:h'))
+      let cur_file_dir = s:ensure_ends_with_separator(expand('%:p:h'))
       if orig_tag_filename =~ cur_file_dir
          let dir = cur_file_dir
          let tag.relative_filename = substitute(orig_tag_filename, cur_file_dir, '', '')
@@ -401,10 +401,10 @@ endfunction
 
 function! s:file_origin_and_dir(path)
    let is_abs = s:is_absolute(a:path)
-   let cur_file_dir = s:ensure_ends_with_seperator(expand('%:p:h'))
+   let cur_file_dir = s:ensure_ends_with_separator(expand('%:p:h'))
    for [origin, data] in g:cpp_include_origins
       if has_key(data, 'directory')
-         let dir = s:ensure_ends_with_seperator(data.directory)
+         let dir = s:ensure_ends_with_separator(data.directory)
          let has_file = 0
          if is_abs
             let has_file = a:path =~ dir
@@ -944,45 +944,45 @@ function! s:has_valid_settings()
    return 1
 endfunction
 
-" return the used path seperator in 'path', '/' or '\',
-" if none is found return platform specific seperator
-function! s:seperator(path)
+" return the used path separator in 'path', '/' or '\',
+" if none is found return platform specific separator
+function! s:separator(path)
    if a:path =~ '/'
       return '/'
    elseif a:path =~ '\'
       return '\'
    endif
 
-   return s:os_seperator()
+   return s:os_separator()
 endfunction
 
-function! s:os_seperator()
+function! s:os_separator()
    return s:has_windows_os ? '\' : '/'
 endfunction
 
-function! s:ensure_ends_with_seperator(path)
+function! s:ensure_ends_with_separator(path)
    if a:path !~ '\v[\\/]+$'
-      let sep = s:seperator(a:path)
+      let sep = s:separator(a:path)
       return a:path . sep
    endif
 
    return a:path
 endfunction
 
-function! s:test_ensure_ends_with_seperator()
+function! s:test_ensure_ends_with_separator()
    if s:has_windows_os
-      call assert_equal('foo/', s:ensure_ends_with_seperator('foo/'))
-      call assert_equal('foo\', s:ensure_ends_with_seperator('foo'))
-      call assert_equal('bar/foo/', s:ensure_ends_with_seperator('bar/foo'))
-      call assert_equal('bar\foo\', s:ensure_ends_with_seperator('bar\foo'))
-      call assert_equal('C:\bar\foo\', s:ensure_ends_with_seperator('C:\bar\foo'))
-      call assert_equal('C:\bar\foo\', s:ensure_ends_with_seperator('C:\bar\foo\'))
+      call assert_equal('foo/', s:ensure_ends_with_separator('foo/'))
+      call assert_equal('foo\', s:ensure_ends_with_separator('foo'))
+      call assert_equal('bar/foo/', s:ensure_ends_with_separator('bar/foo'))
+      call assert_equal('bar\foo\', s:ensure_ends_with_separator('bar\foo'))
+      call assert_equal('C:\bar\foo\', s:ensure_ends_with_separator('C:\bar\foo'))
+      call assert_equal('C:\bar\foo\', s:ensure_ends_with_separator('C:\bar\foo\'))
    else
-      call assert_equal('foo/', s:ensure_ends_with_seperator('foo/'))
-      call assert_equal('foo/', s:ensure_ends_with_seperator('foo'))
-      call assert_equal('bar/foo/', s:ensure_ends_with_seperator('bar/foo'))
-      call assert_equal('/bar/foo/', s:ensure_ends_with_seperator('/bar/foo'))
-      call assert_equal('/bar/foo/', s:ensure_ends_with_seperator('/bar/foo/'))
+      call assert_equal('foo/', s:ensure_ends_with_separator('foo/'))
+      call assert_equal('foo/', s:ensure_ends_with_separator('foo'))
+      call assert_equal('bar/foo/', s:ensure_ends_with_separator('bar/foo'))
+      call assert_equal('/bar/foo/', s:ensure_ends_with_separator('/bar/foo'))
+      call assert_equal('/bar/foo/', s:ensure_ends_with_separator('/bar/foo/'))
    endif
 endfunction
 
@@ -1068,4 +1068,4 @@ let s:saved_vim_settings = {}
 
 let s:include_regex = '\v^[ \t]*#[ \t]*include'
 let s:include_path_regex = s:include_regex . '[ \t]*([<"]*)([^>"]+)([>"]*)'
-let s:script_path = s:ensure_ends_with_seperator(expand('<sfile>:p:h'))
+let s:script_path = s:ensure_ends_with_separator(expand('<sfile>:p:h'))
