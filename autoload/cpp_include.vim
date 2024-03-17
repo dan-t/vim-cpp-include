@@ -130,6 +130,14 @@ function! cpp_include#init_settings()
       let g:cpp_include_origins = []
    endif
 
+   if !exists('g:cpp_include_regex')
+      let g:cpp_include_regex = '\v^[ \t]*#[ \t]*include'
+   endif
+
+   if !exists('g:cpp_include_path_regex')
+      let g:cpp_include_path_regex = g:cpp_include_regex . '[ \t]*([<"]*)([^>"]+)([>"]*)'
+   endif
+
    let [found_std, std] = fn#find(g:cpp_include_origins, { x -> x[0] == 'std' })
    if found_std
       let std_data = std[1]
@@ -604,7 +612,7 @@ function! s:select_line()
    if line_str =~ '\v^[ \n\t]*$'
       let pos = 'at'
    " if the first line is a non include line, then insert the line above
-   elseif line == 1 && line_str !~ s:include_regex
+   elseif line == 1 && line_str !~ g:cpp_include_regex
       let pos = 'above'
    endif
 
@@ -708,17 +716,27 @@ function! s:add_include(include_pos, include_str)
 endfunction
 
 function! s:parse_include(line, line_str)
-   let matches = matchlist(a:line_str, s:include_path_regex)
+   let matches = matchlist(a:line_str, g:cpp_include_path_regex)
    if empty(matches)
       call s:log("parse_include: no match for line_str='%s'", a:line_str)
       return {}
    endif
 
    let path = matches[2]
-   let inc = { 'path': path, 'origin': s:file_origin_and_dir(path)[0], 'string': a:line_str, 'line': a:line }
+   let inc = {}
+   for [origin, data] in g:cpp_include_origins
+      if has_key(data, 'include_regex')
+         if a:line_str =~ data.include_regex
+            let inc = { 'path': path, 'origin': origin, 'string': a:line_str, 'line': a:line }
+         endif
+      endif
+   endfor
+
+   if empty(inc)
+      let inc = { 'path': path, 'origin': s:file_origin_and_dir(path)[0], 'string': a:line_str, 'line': a:line }
+   endif
 
    call s:log('parsed include: %s', inc)
-
    return inc
 endfunction
 
@@ -753,7 +771,7 @@ function! s:find_all_includes()
    call cursor(1, 1)
    let lines = []
    while 1
-      let line = search(s:include_regex, empty(lines) ? 'cW' : 'W')
+      let line = search(g:cpp_include_regex, empty(lines) ? 'cW' : 'W')
       if line == 0
          break
       endif
@@ -1097,7 +1115,4 @@ let s:settings = [
    \ 's:origin_to_data' ]
 
 let s:saved_vim_settings = {}
-
-let s:include_regex = '\v^[ \t]*#[ \t]*include'
-let s:include_path_regex = s:include_regex . '[ \t]*([<"]*)([^>"]+)([>"]*)'
 let s:script_path = s:ensure_ends_with_separator(expand('<sfile>:p:h'))
