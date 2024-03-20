@@ -130,14 +130,6 @@ function! cpp_include#init_settings()
       let g:cpp_include_origins = []
    endif
 
-   if !exists('g:cpp_include_regex')
-      let g:cpp_include_regex = '\v^[ \t]*#[ \t]*include'
-   endif
-
-   if !exists('g:cpp_include_path_regex')
-      let g:cpp_include_path_regex = g:cpp_include_regex . '[ \t]*([<"]*)([^>"]+)([>"]*)'
-   endif
-
    let [found_std, std] = fn#find(g:cpp_include_origins, { x -> x[0] == 'std' })
    if found_std
       let std_data = std[1]
@@ -164,6 +156,9 @@ function! cpp_include#init_settings()
    let s:origin_to_data = {}
    for [origin, data] in g:cpp_include_origins
       let s:origin_to_data[origin] = data
+      if has_key(data, 'include_regex')
+         let s:include_regex = s:include_regex . '|\v%(' . data.include_regex . '\v)'
+      endif
    endfor
 
    call s:log('s:origin_to_data=%s', s:origin_to_data)
@@ -612,7 +607,7 @@ function! s:select_line()
    if line_str =~ '\v^[ \n\t]*$'
       let pos = 'at'
    " if the first line is a non include line, then insert the line above
-   elseif line == 1 && line_str !~ g:cpp_include_regex
+   elseif line == 1 && line_str !~ s:include_regex
       let pos = 'above'
    endif
 
@@ -716,13 +711,18 @@ function! s:add_include(include_pos, include_str)
 endfunction
 
 function! s:parse_include(line, line_str)
-   let matches = matchlist(a:line_str, g:cpp_include_path_regex)
+   let matches = matchlist(a:line_str, s:include_regex)
    if empty(matches)
       call s:log("parse_include: no match for line_str='%s'", a:line_str)
       return {}
    endif
 
-   let path = matches[2]
+   call s:log('matches=%s', matches)
+   let [found_path, path] = fn#find(matches[1:-1], { x -> x != '' })
+   if !found_path
+      return {}
+   endif
+
    let inc = {}
    for [origin, data] in g:cpp_include_origins
       if has_key(data, 'include_regex')
@@ -758,7 +758,7 @@ function! s:find_include(symbol_id, includes)
    call s:log("find_include: symbol_id='%s'", a:symbol_id)
    for inc in a:includes
       call s:log("find_include: inc='%s'", inc)
-      if s:relative_path_or_path(a:symbol_id) == inc.path
+      if a:symbol_id.origin == inc.origin && s:relative_path_or_path(a:symbol_id) == inc.path
          return inc
       endif
    endfor
@@ -771,7 +771,7 @@ function! s:find_all_includes()
    call cursor(1, 1)
    let lines = []
    while 1
-      let line = search(g:cpp_include_regex, empty(lines) ? 'cW' : 'W')
+      let line = search(s:include_regex, empty(lines) ? 'cW' : 'W')
       if line == 0
          break
       endif
@@ -1116,3 +1116,4 @@ let s:settings = [
 
 let s:saved_vim_settings = {}
 let s:script_path = s:ensure_ends_with_separator(expand('<sfile>:p:h'))
+let s:include_regex = '\v%(^[ \t]*#[ \t]*include[ \t]*%([<"]*)([^>"]+)%([>"]*)$)'
