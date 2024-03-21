@@ -100,13 +100,17 @@ endfunction
 function! cpp_include#init_settings()
    if !exists('g:cpp_include_log')
       let g:cpp_include_log = 0
-   elseif !exists('g:cpp_include_log_file')
+   endif
+
+   if !exists('g:cpp_include_log_file')
       let g:cpp_include_log_file = 'vim_cpp_include.log'
    endif
 
-   if exists('g:cpp_include_log_file')
-      " clear log file
-      call writefile([], g:cpp_include_log_file)
+   if g:cpp_include_log
+      if exists('g:cpp_include_log_file')
+         " clear log file
+         call writefile([], g:cpp_include_log_file)
+      endif
    endif
 
    if !exists('g:cpp_include_kinds_order')
