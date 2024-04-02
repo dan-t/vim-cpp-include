@@ -97,6 +97,10 @@ function! cpp_include#print_info(...)
    echo printf('cpp-include: %s', msg)
 endfunction
 
+function! cpp_include#dump_vars()
+   echo printf('cpp-include: s:script_path=%s, s:include_regex=%s', s:script_path, s:include_regex)
+endfunction
+
 function! cpp_include#init_settings()
    if !exists('g:cpp_include_log')
       let g:cpp_include_log = 0
