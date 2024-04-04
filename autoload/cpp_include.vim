@@ -98,7 +98,7 @@ function! cpp_include#print_info(...)
 endfunction
 
 function! cpp_include#dump_vars()
-   echo printf('cpp-include: s:script_path=%s, s:include_regex=%s', s:script_path, s:include_regex)
+   echo printf('cpp-include: s:script_path=%s, s:include_regex=%s, s:include_regex_init=%s', s:script_path, s:include_regex, s:include_regex_init)
 endfunction
 
 function! cpp_include#init_settings()
@@ -164,10 +164,13 @@ function! cpp_include#init_settings()
    let s:origin_to_data = {}
    for [origin, data] in g:cpp_include_origins
       let s:origin_to_data[origin] = data
-      if has_key(data, 'include_regex')
-         let s:include_regex = s:include_regex . '|\v%(' . data.include_regex . '\v)'
+      if !s:include_regex_init
+         if has_key(data, 'include_regex')
+            let s:include_regex = s:include_regex . '|\v%(' . data.include_regex . '\v)'
+         endif
       endif
    endfor
+   let s:include_regex_init = 1
 
    call s:log('s:origin_to_data=%s', s:origin_to_data)
 
@@ -1125,3 +1128,4 @@ let s:settings = [
 let s:saved_vim_settings = {}
 let s:script_path = s:ensure_ends_with_separator(expand('<sfile>:p:h'))
 let s:include_regex = '\v%(^[ \t]*#[ \t]*include[ \t]*%([<"]*)([^>"]+)%([>"]*)$)'
+let s:include_regex_init = 0
