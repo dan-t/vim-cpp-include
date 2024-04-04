@@ -166,7 +166,7 @@ function! cpp_include#init_settings()
       let s:origin_to_data[origin] = data
       if !s:include_regex_init
          if has_key(data, 'include_regex')
-            let s:include_regex = s:include_regex . '|\v%(' . data.include_regex . '\v)'
+            let s:include_regex = s:include_regex . '|\v%(\m' . data.include_regex . '\v)'
          endif
       endif
    endfor
